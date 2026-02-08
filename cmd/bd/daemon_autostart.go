@@ -9,9 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
 	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
 	"github.com/steveyegge/beads/internal/debug"
 	"github.com/steveyegge/beads/internal/lockfile"
 	"github.com/steveyegge/beads/internal/rpc"
@@ -45,83 +43,10 @@ var (
 	startDaemonProcessFn       = startDaemonProcess
 	isDaemonRunningFn          = isDaemonRunning
 	sendStopSignalFn           = sendStopSignal
-	isDoltBackendFn            = isDoltBackendImpl
-	singleProcessOnlyBackendFn = singleProcessOnlyBackendImpl
 )
-
-// isDoltBackend returns true if the current workspace uses any Dolt backend mode.
-// The daemon is only needed for SQLite - Dolt has its own sync mechanism.
-// This is a wrapper that calls isDoltBackendFn for testability.
-func isDoltBackend() bool {
-	return isDoltBackendFn()
-}
-
-// isDoltBackendImpl is the actual implementation of isDoltBackend.
-func isDoltBackendImpl() bool {
-	beadsDir := ""
-	if dbPath != "" {
-		beadsDir = filepath.Dir(dbPath)
-	} else if found := beads.FindDatabasePath(); found != "" {
-		beadsDir = filepath.Dir(found)
-	} else {
-		beadsDir = beads.FindBeadsDir()
-	}
-	if beadsDir == "" {
-		return false
-	}
-
-	cfg, err := configfile.Load(beadsDir)
-	if err != nil || cfg == nil {
-		return false
-	}
-	return cfg.GetBackend() == configfile.BackendDolt
-}
-
-// singleProcessOnlyBackend returns true if the current workspace backend is configured
-// as single-process-only (currently Dolt embedded).
-// This is a wrapper that calls singleProcessOnlyBackendFn for testability.
-func singleProcessOnlyBackend() bool {
-	return singleProcessOnlyBackendFn()
-}
-
-// singleProcessOnlyBackendImpl is the actual implementation of singleProcessOnlyBackend.
-//
-// Best-effort: if we can't determine the backend, we return false and defer to other logic.
-func singleProcessOnlyBackendImpl() bool {
-	// Prefer dbPath if set; it points to either .beads/<db>.db (sqlite) or .beads/dolt (dolt dir).
-	beadsDir := ""
-	if dbPath != "" {
-		beadsDir = filepath.Dir(dbPath)
-	} else if found := beads.FindDatabasePath(); found != "" {
-		beadsDir = filepath.Dir(found)
-	} else {
-		beadsDir = beads.FindBeadsDir()
-	}
-	if beadsDir == "" {
-		return false
-	}
-
-	cfg, err := configfile.Load(beadsDir)
-	if err != nil || cfg == nil {
-		return false
-	}
-	// Use GetCapabilities() to properly handle Dolt server mode
-	return cfg.GetCapabilities().SingleProcessOnly
-}
 
 // shouldAutoStartDaemon checks if daemon auto-start is enabled
 func shouldAutoStartDaemon() bool {
-	// Dolt backend doesn't need daemon - it has its own sync via dolt sql-server.
-	// This applies to both embedded and server modes.
-	if isDoltBackend() {
-		return false
-	}
-
-	// For other backends, check SingleProcessOnly capability
-	if singleProcessOnlyBackend() {
-		return false
-	}
-
 	// Check BEADS_NO_DAEMON first (escape hatch for single-user workflows)
 	noDaemon := strings.ToLower(strings.TrimSpace(os.Getenv("BEADS_NO_DAEMON")))
 	if noDaemon == "1" || noDaemon == "true" || noDaemon == "yes" || noDaemon == "on" {
@@ -145,18 +70,6 @@ func shouldAutoStartDaemon() bool {
 // restartDaemonForVersionMismatch stops the old daemon and starts a new one
 // Returns true if restart was successful
 func restartDaemonForVersionMismatch() bool {
-	// Dolt backend doesn't need daemon - it has its own sync mechanism.
-	if isDoltBackend() {
-		debugLog("dolt backend: skipping daemon restart for version mismatch")
-		return false
-	}
-
-	// For other backends, check SingleProcessOnly capability
-	if singleProcessOnlyBackend() {
-		debugLog("single-process backend: skipping daemon restart for version mismatch")
-		return false
-	}
-
 	pidFile, err := getPIDFilePath()
 	if err != nil {
 		debug.Logf("failed to get PID file path: %v", err)
@@ -260,16 +173,6 @@ func isDaemonRunningQuiet(pidFile string) bool {
 // tryAutoStartDaemon attempts to start the daemon in the background
 // Returns true if daemon was started successfully and socket is ready
 func tryAutoStartDaemon(socketPath string) bool {
-	// Dolt backend doesn't need daemon - it has its own sync mechanism.
-	if isDoltBackend() {
-		return false
-	}
-
-	// For other backends, check SingleProcessOnly capability
-	if singleProcessOnlyBackend() {
-		return false
-	}
-
 	// Empty dbPath causes filepath.Dir("") to return "." which breaks lock
 	// file operations. This can happen when metadata.json has an empty database
 	// field and no beads.db file exists. Skip daemon start gracefully.
@@ -459,18 +362,6 @@ func ensureLockDirectory(lockPath string) error {
 }
 
 func startDaemonProcess(socketPath string) bool {
-	// Dolt backend doesn't need daemon - it has its own sync mechanism.
-	if isDoltBackend() {
-		debugLog("dolt backend: skipping daemon start")
-		return false
-	}
-
-	// For other backends, check SingleProcessOnly capability
-	if singleProcessOnlyBackend() {
-		debugLog("single-process backend: skipping daemon start")
-		return false
-	}
-
 	// Early check: daemon requires a git repository (unless --local mode)
 	// Skip attempting to start and avoid the 5-second wait if not in git repo
 	if !isGitRepo() {
@@ -659,9 +550,6 @@ func emitVerboseWarning() {
 		fmt.Fprintf(os.Stderr, "Warning: Daemon does not support this command yet. Running in direct mode. Hint: update daemon or use local mode.\n")
 	case FallbackWorktreeSafety:
 		// Don't warn - this is expected behavior. User can configure sync-branch to enable daemon.
-		return
-	case FallbackSingleProcessOnly:
-		// Don't warn - daemon is intentionally disabled for single-process backends (e.g., Dolt).
 		return
 	case FallbackFlagNoDaemon:
 		// Don't warn when user explicitly requested --no-daemon

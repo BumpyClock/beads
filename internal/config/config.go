@@ -730,25 +730,16 @@ func ShouldImportOnChange() bool {
 	return GetString("sync.import_on") == SyncTriggerChange
 }
 
-// NeedsDoltRemote returns true if the sync mode requires a Dolt remote.
-func NeedsDoltRemote() bool {
-	mode := GetSyncMode()
-	return mode == SyncModeDoltNative || mode == SyncModeBeltAndSuspenders
-}
-
 // NeedsJSONL returns true if the sync mode requires JSONL export.
+// All current sync modes use JSONL.
 func NeedsJSONL() bool {
-	mode := GetSyncMode()
-	return mode == SyncModeGitPortable || mode == SyncModeRealtime || mode == SyncModeBeltAndSuspenders
+	return true
 }
 
 // NeedsJSONLImport returns true if the sync mode should import from JSONL.
-// In dolt-native mode, imports are disabled to prevent stale JSONL from
-// overwriting dolt data. This is for use by internal/rpc which can't
-// import cmd/bd.
+// All current sync modes use JSONL import.
 func NeedsJSONLImport() bool {
-	mode := GetSyncMode()
-	return mode != SyncModeDoltNative
+	return true
 }
 
 // GetCustomTypesFromYAML retrieves custom issue types from config.yaml.

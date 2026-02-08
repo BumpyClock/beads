@@ -80,14 +80,13 @@ func RepoFingerprint(path string) error {
 		return nil
 
 	case "2":
-		// Detect backend to determine what to remove
+		// Detect database path
 		beadsDir := filepath.Join(path, ".beads")
 		cfg, cfgErr := configfile.Load(beadsDir)
 		if cfgErr != nil || cfg == nil {
 			cfg = configfile.DefaultConfig()
 		}
 		dbPath := cfg.DatabasePath(beadsDir)
-		isDolt := cfg.GetBackend() == configfile.BackendDolt
 
 		// Confirm before destructive action
 		fmt.Printf("  ⚠️  This will DELETE %s. Continue? [y/N]: ", dbPath)
@@ -103,20 +102,12 @@ func RepoFingerprint(path string) error {
 
 		// Remove database and reinitialize
 		fmt.Printf("  → Removing %s...\n", dbPath)
-		if isDolt {
-			// Dolt uses a directory
-			if err := os.RemoveAll(dbPath); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("failed to remove Dolt database: %w", err)
-			}
-		} else {
-			// SQLite uses a file
-			if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("failed to remove database: %w", err)
-			}
-			// Also remove WAL and SHM files if they exist
-			_ = os.Remove(dbPath + "-wal")
-			_ = os.Remove(dbPath + "-shm")
+		if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove database: %w", err)
 		}
+		// Also remove WAL and SHM files if they exist
+		_ = os.Remove(dbPath + "-wal")
+		_ = os.Remove(dbPath + "-shm")
 
 		fmt.Println("  → Running 'bd init'...")
 		cmd := newBdCmd(bdBinary, "init", "--quiet")

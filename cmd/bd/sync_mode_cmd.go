@@ -16,8 +16,6 @@ var syncModeInfo = []struct {
 }{
 	{SyncModeGitPortable, "JSONL exported on push, imported on pull (default)"},
 	{SyncModeRealtime, "JSONL exported on every change (more git noise)"},
-	{SyncModeDoltNative, "Dolt remotes for sync, JSONL export-only backup (requires Dolt backend)"},
-	{SyncModeBeltAndSuspenders, "Both Dolt remotes and JSONL (maximum redundancy)"},
 }
 
 var syncModeCmd = &cobra.Command{
@@ -35,14 +33,6 @@ Sync mode controls how beads synchronizes data with git:
     JSONL exported on every database change.
     Provides immediate persistence but more git noise.
 
-  dolt-native
-    Dolt remotes for sync, JSONL export-only (backup).
-    Requires Dolt backend and configured Dolt remote.
-
-  belt-and-suspenders
-    Uses both Dolt remotes AND JSONL.
-    Maximum redundancy - Dolt for versioning, JSONL for git portability.
-
 Commands:
   bd sync mode list      List available sync modes
   bd sync mode current   Show current sync mode
@@ -54,7 +44,7 @@ var syncModeListCmd = &cobra.Command{
 	Short: "List available sync modes",
 	Long: `List all available sync modes and their descriptions.
 
-Sync modes control how beads synchronizes with git and Dolt remotes.`,
+Sync modes control how beads synchronizes with git.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if jsonOutput {
 			modes := make([]map[string]string, len(syncModeInfo))
@@ -126,12 +116,9 @@ var syncModeSetCmd = &cobra.Command{
 Valid modes:
   git-portable          JSONL exported on push, imported on pull (default)
   realtime              JSONL exported on every change
-  dolt-native           Dolt remotes for sync, JSONL export-only backup (requires Dolt backend)
-  belt-and-suspenders   Both Dolt remotes and JSONL
 
 Example:
-  bd sync mode set realtime
-  bd sync mode set dolt-native`,
+  bd sync mode set realtime`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		CheckReadonly("sync mode set")

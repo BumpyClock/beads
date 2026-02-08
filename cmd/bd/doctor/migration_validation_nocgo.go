@@ -1,9 +1,7 @@
-//go:build !cgo
-
 package doctor
 
 // MigrationValidationResult provides machine-parseable migration validation output.
-// This stub exists for non-CGO builds where Dolt is not available.
+// This stub exists because the Dolt backend has been removed.
 type MigrationValidationResult struct {
 	Phase           string   `json:"phase"`
 	Ready           bool     `json:"ready"`
@@ -23,42 +21,42 @@ type MigrationValidationResult struct {
 	RecommendedFix  string   `json:"recommended_fix"`
 }
 
-// CheckMigrationReadiness returns N/A when CGO is not available.
+// CheckMigrationReadiness is a stub; Dolt backend has been removed.
 func CheckMigrationReadiness(path string) (DoctorCheck, MigrationValidationResult) {
 	return DoctorCheck{
 		Name:     "Migration Readiness",
 		Status:   StatusOK,
-		Message:  "N/A (requires CGO for Dolt)",
+		Message:  "N/A (Dolt backend removed)",
 		Category: CategoryMaintenance,
 	}, MigrationValidationResult{
 		Phase:   "pre-migration",
 		Ready:   false,
 		Backend: "unknown",
-		Errors:  []string{"Dolt migration requires CGO build"},
+		Errors:  []string{"Dolt backend has been removed; see github.com/BumpyClock/beads-dolt"},
 	}
 }
 
-// CheckMigrationCompletion returns N/A when CGO is not available.
+// CheckMigrationCompletion is a stub; Dolt backend has been removed.
 func CheckMigrationCompletion(path string) (DoctorCheck, MigrationValidationResult) {
 	return DoctorCheck{
 		Name:     "Migration Completion",
 		Status:   StatusOK,
-		Message:  "N/A (requires CGO for Dolt)",
+		Message:  "N/A (Dolt backend removed)",
 		Category: CategoryMaintenance,
 	}, MigrationValidationResult{
 		Phase:   "post-migration",
 		Ready:   false,
 		Backend: "unknown",
-		Errors:  []string{"Dolt migration requires CGO build"},
+		Errors:  []string{"Dolt backend has been removed; see github.com/BumpyClock/beads-dolt"},
 	}
 }
 
-// CheckDoltLocks returns N/A when CGO is not available.
+// CheckDoltLocks is a stub; Dolt backend has been removed.
 func CheckDoltLocks(path string) DoctorCheck {
 	return DoctorCheck{
 		Name:     "Dolt Locks",
 		Status:   StatusOK,
-		Message:  "N/A (requires CGO for Dolt)",
+		Message:  "N/A (Dolt backend removed)",
 		Category: CategoryMaintenance,
 	}
 }

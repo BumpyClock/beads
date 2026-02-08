@@ -32,16 +32,16 @@ func TestGetSyncMode(t *testing.T) {
 			expectsWarning: false,
 		},
 		{
-			name:           "dolt-native is valid",
+			name:           "dolt-native is invalid",
 			configValue:    "dolt-native",
-			expectedMode:   SyncModeDoltNative,
-			expectsWarning: false,
+			expectedMode:   SyncModeGitPortable,
+			expectsWarning: true,
 		},
 		{
-			name:           "belt-and-suspenders is valid",
+			name:           "belt-and-suspenders is invalid",
 			configValue:    "belt-and-suspenders",
-			expectedMode:   SyncModeBeltAndSuspenders,
-			expectsWarning: false,
+			expectedMode:   SyncModeGitPortable,
+			expectsWarning: true,
 		},
 		{
 			name:           "mixed case is normalized",
@@ -357,8 +357,8 @@ func TestIsValidSyncMode(t *testing.T) {
 	}{
 		{"git-portable", true},
 		{"realtime", true},
-		{"dolt-native", true},
-		{"belt-and-suspenders", true},
+		{"dolt-native", false},
+		{"belt-and-suspenders", false},
 		{"Git-Portable", true}, // case insensitive
 		{"  realtime  ", true}, // whitespace trimmed
 		{"invalid", false},
@@ -421,10 +421,10 @@ func TestIsValidSovereignty(t *testing.T) {
 
 func TestValidSyncModes(t *testing.T) {
 	modes := ValidSyncModes()
-	if len(modes) != 4 {
-		t.Errorf("ValidSyncModes() returned %d modes, want 4", len(modes))
+	if len(modes) != 2 {
+		t.Errorf("ValidSyncModes() returned %d modes, want 2", len(modes))
 	}
-	expected := []string{"git-portable", "realtime", "dolt-native", "belt-and-suspenders"}
+	expected := []string{"git-portable", "realtime"}
 	for i, m := range modes {
 		if m != expected[i] {
 			t.Errorf("ValidSyncModes()[%d] = %q, want %q", i, m, expected[i])

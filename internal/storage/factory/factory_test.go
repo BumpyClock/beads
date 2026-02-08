@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage"
 )
 
 func TestNew_SQLiteBackend(t *testing.T) {
@@ -75,22 +74,6 @@ func TestNewWithOptions_ReadOnly(t *testing.T) {
 	}
 }
 
-func TestRegisterBackend(t *testing.T) {
-	called := false
-	RegisterBackend("test-backend", func(ctx context.Context, path string, opts Options) (storage.Storage, error) {
-		called = true
-		return nil, nil
-	})
-
-	_, _ = New(context.Background(), "test-backend", "/fake")
-	if !called {
-		t.Error("registered backend factory was not called")
-	}
-
-	// Clean up registry
-	delete(backendRegistry, "test-backend")
-}
-
 func TestGetBackendFromConfig_NoConfig(t *testing.T) {
 	// Non-existent directory should default to SQLite
 	backend := GetBackendFromConfig("/nonexistent/path")
@@ -122,11 +105,5 @@ func TestOptions_ZeroValue(t *testing.T) {
 	}
 	if opts.LockTimeout != 0 {
 		t.Error("zero Options should have zero LockTimeout")
-	}
-	if opts.ServerHost != "" {
-		t.Error("zero Options should have empty ServerHost")
-	}
-	if opts.ServerPort != 0 {
-		t.Error("zero Options should have zero ServerPort")
 	}
 }

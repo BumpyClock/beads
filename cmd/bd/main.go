@@ -86,27 +86,10 @@ var (
 	verboseFlag     bool // Enable verbose/debug output
 	quietFlag       bool // Suppress non-essential output
 
-	// Dolt auto-commit policy (flag/config). Values: off | on
-	doltAutoCommit string
-
 	// commandDidWrite is set when a command performs a write that should trigger
-	// auto-flush. Used to decide whether to auto-commit Dolt after the command completes.
+	// auto-flush.
 	// Thread-safe via atomic.Bool to avoid data races in concurrent flush operations.
 	commandDidWrite atomic.Bool
-
-	// commandDidExplicitDoltCommit is set when a command already created a Dolt commit
-	// explicitly (e.g., bd sync in dolt-native mode, hook flows, bd vc commit).
-	// This prevents a redundant auto-commit attempt in PersistentPostRun.
-	commandDidExplicitDoltCommit bool
-
-	// commandDidWriteTipMetadata is set when a command records a tip as "shown" by writing
-	// metadata (tip_*_last_shown). This will be used to create a separate Dolt commit for
-	// tip writes, even when the main command is read-only.
-	commandDidWriteTipMetadata bool
-
-	// commandTipIDsShown tracks which tip IDs were shown in this command (deduped).
-	// This is used for tip-commit message formatting.
-	commandTipIDsShown map[string]struct{}
 )
 
 // readOnlyCommands lists commands that only read from the database.
@@ -213,7 +196,6 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&allowStale, "allow-stale", false, "Allow operations on potentially stale data (skip staleness check)")
 	rootCmd.PersistentFlags().BoolVar(&noDb, "no-db", false, "Use no-db mode: load from JSONL, no SQLite")
 	rootCmd.PersistentFlags().BoolVar(&readonlyMode, "readonly", false, "Read-only mode: block write operations (for worker sandboxes)")
-	rootCmd.PersistentFlags().StringVar(&doltAutoCommit, "dolt-auto-commit", "", "Dolt backend: auto-commit after write commands (off|on). Default from config key dolt.auto-commit")
 	rootCmd.PersistentFlags().DurationVar(&lockTimeout, "lock-timeout", 30*time.Second, "SQLite busy timeout (0 = fail immediately if locked)")
 	rootCmd.PersistentFlags().BoolVar(&profileEnabled, "profile", false, "Generate CPU profile for performance analysis")
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Enable verbose/debug output")
@@ -256,11 +238,8 @@ var rootCmd = &cobra.Command{
 		// Initialize CommandContext to hold runtime state (replaces scattered globals)
 		initCommandContext()
 
-		// Reset per-command write tracking (used by Dolt auto-commit).
+		// Reset per-command write tracking.
 		commandDidWrite.Store(false)
-		commandDidExplicitDoltCommit = false
-		commandDidWriteTipMetadata = false
-		commandTipIDsShown = make(map[string]struct{})
 
 		// Set up signal-aware context for graceful cancellation
 		rootCtx, rootCancel = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -358,27 +337,12 @@ var rootCmd = &cobra.Command{
 				WasSet bool
 			}{actor, true}
 		}
-		if !cmd.Flags().Changed("dolt-auto-commit") && strings.TrimSpace(doltAutoCommit) == "" {
-			doltAutoCommit = config.GetString("dolt.auto-commit")
-		} else if cmd.Flags().Changed("dolt-auto-commit") {
-			flagOverrides["dolt-auto-commit"] = struct {
-				Value  interface{}
-				WasSet bool
-			}{doltAutoCommit, true}
-		}
-
 		// Check for and log configuration overrides (only in verbose mode)
 		if verboseFlag {
 			overrides := config.CheckOverrides(flagOverrides)
 			for _, override := range overrides {
 				config.LogOverride(override)
 			}
-		}
-
-		// Validate Dolt auto-commit mode early so all commands fail fast on invalid config.
-		if _, err := getDoltAutoCommitMode(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
 		}
 
 		// GH#1093: Check noDbCommands BEFORE expensive operations (ensureForkProtection,
@@ -435,11 +399,6 @@ var rootCmd = &cobra.Command{
 
 		// Protect forks from accidentally committing upstream issue database
 		ensureForkProtection()
-
-		// Show migration hint if SQLite + prefer-dolt configured (rate-limited, non-blocking)
-		if hintDir := beads.FindBeadsDir(); hintDir != "" {
-			maybeShowMigrationHint(hintDir)
-		}
 
 		// Performance profiling setup
 		// When --profile is enabled, force direct mode to capture actual database operations
@@ -641,17 +600,6 @@ var rootCmd = &cobra.Command{
 			debug.Logf("wisp operation detected, using direct mode")
 		}
 
-		// Embedded Dolt is single-process-only; never use daemon/RPC.
-		// (Dolt server mode supports multi-process and won't trigger this.)
-		// This must be checked after dbPath is resolved.
-		if !noDaemon && singleProcessOnlyBackend() {
-			noDaemon = true
-			daemonStatus.AutoStartEnabled = false
-			daemonStatus.FallbackReason = FallbackSingleProcessOnly
-			daemonStatus.Detail = "backend is single-process-only (embedded dolt): daemon mode disabled; using direct mode"
-			debug.Logf("single-process backend detected, using direct mode")
-		}
-
 		// Try to connect to daemon first (unless --no-daemon flag is set or worktree safety check fails)
 		if noDaemon {
 			// Only set FallbackFlagNoDaemon if not already set by auto-bypass logic
@@ -844,51 +792,20 @@ var rootCmd = &cobra.Command{
 		var needsBootstrap bool // Track if DB needs initial import (GH#b09)
 		beadsDir := filepath.Dir(dbPath)
 
-		// Detect backend from metadata.json
-		backend := factory.GetBackendFromConfig(beadsDir)
-
 		// Create storage with appropriate options
 		opts := factory.Options{
 			ReadOnly:    useReadOnly,
 			LockTimeout: lockTimeout,
 		}
 
-		if backend == configfile.BackendDolt {
-			// Set advisory lock timeout for dolt embedded mode.
-			// Reads get a shorter timeout (shared lock, less contention expected).
-			// Writes get a longer timeout (exclusive lock, may need to wait for readers).
-			if useReadOnly {
-				opts.OpenTimeout = 5 * time.Second
-			} else {
-				opts.OpenTimeout = 15 * time.Second
-			}
-
-			// For Dolt, use the dolt subdirectory
-			doltPath := filepath.Join(beadsDir, "dolt")
-
-			// Check if server mode is configured in metadata.json
-			cfg, cfgErr := configfile.Load(beadsDir)
-			if cfgErr == nil && cfg != nil && cfg.IsDoltServerMode() {
-				opts.ServerMode = true
-				opts.ServerHost = cfg.GetDoltServerHost()
-				opts.ServerPort = cfg.GetDoltServerPort()
-				if cfg.Database != "" {
-					opts.Database = cfg.GetDoltDatabase()
-				}
-			}
-
-			store, err = factory.NewWithOptions(rootCtx, backend, doltPath, opts)
-		} else {
-			// SQLite backend
-			store, err = factory.NewWithOptions(rootCtx, backend, dbPath, opts)
-			if err != nil && useReadOnly {
-				// If read-only fails (e.g., DB doesn't exist), fall back to read-write
-				// This handles the case where user runs "bd list" before "bd init"
-				debug.Logf("read-only open failed, falling back to read-write: %v", err)
-				opts.ReadOnly = false
-				store, err = factory.NewWithOptions(rootCtx, backend, dbPath, opts)
-				needsBootstrap = true // New DB needs auto-import (GH#b09)
-			}
+		store, err = factory.NewWithOptions(rootCtx, configfile.BackendSQLite, dbPath, opts)
+		if err != nil && useReadOnly {
+			// If read-only fails (e.g., DB doesn't exist), fall back to read-write
+			// This handles the case where user runs "bd list" before "bd init"
+			debug.Logf("read-only open failed, falling back to read-write: %v", err)
+			opts.ReadOnly = false
+			store, err = factory.NewWithOptions(rootCtx, configfile.BackendSQLite, dbPath, opts)
+			needsBootstrap = true // New DB needs auto-import (GH#b09)
 		}
 
 		// Track final read-only state for staleness checks (GH#1089)
@@ -1014,45 +931,6 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		// Dolt auto-commit: after a successful write command (and after final flush),
-		// create a Dolt commit so changes don't remain only in the working set.
-		if commandDidWrite.Load() && !commandDidExplicitDoltCommit {
-			if err := maybeAutoCommit(rootCtx, doltAutoCommitParams{Command: cmd.Name()}); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: dolt auto-commit failed: %v\n", err)
-				os.Exit(1)
-			}
-		}
-
-		// Tip metadata auto-commit: if a tip was shown, create a separate Dolt commit for the
-		// tip_*_last_shown metadata updates. This may happen even for otherwise read-only commands.
-		if commandDidWriteTipMetadata && len(commandTipIDsShown) > 0 {
-			// Only applies when dolt auto-commit is enabled and backend is versioned (Dolt).
-			if mode, err := getDoltAutoCommitMode(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: dolt tip auto-commit failed: %v\n", err)
-				os.Exit(1)
-			} else if mode == doltAutoCommitOn {
-				// Apply tip metadata writes now (deferred in recordTipShown for Dolt).
-				for tipID := range commandTipIDsShown {
-					key := fmt.Sprintf("tip_%s_last_shown", tipID)
-					value := time.Now().Format(time.RFC3339)
-					if err := store.SetMetadata(rootCtx, key, value); err != nil {
-						fmt.Fprintf(os.Stderr, "Error: dolt tip auto-commit failed: %v\n", err)
-						os.Exit(1)
-					}
-				}
-
-				ids := make([]string, 0, len(commandTipIDsShown))
-				for tipID := range commandTipIDsShown {
-					ids = append(ids, tipID)
-				}
-				msg := formatDoltAutoCommitMessage("tip", getActor(), ids)
-				if err := maybeAutoCommit(rootCtx, doltAutoCommitParams{Command: "tip", MessageOverride: msg}); err != nil {
-					fmt.Fprintf(os.Stderr, "Error: dolt tip auto-commit failed: %v\n", err)
-					os.Exit(1)
-				}
-			}
-		}
-
 		// Signal that store is closing (prevents background flush from accessing closed store)
 		storeMutex.Lock()
 		storeActive = false
@@ -1079,16 +957,14 @@ var rootCmd = &cobra.Command{
 }
 
 // blockedEnvVars lists environment variables that must not be set because they
-// could silently override the storage backend via viper's AutomaticEnv, causing
-// data fragmentation between sqlite and dolt (bd-hevyw).
+// could silently override the storage backend via viper's AutomaticEnv.
 var blockedEnvVars = []string{"BD_BACKEND", "BD_DATABASE_BACKEND"}
 
 // checkBlockedEnvVars returns an error if any blocked env vars are set.
 func checkBlockedEnvVars() error {
 	for _, name := range blockedEnvVars {
 		if os.Getenv(name) != "" {
-			return fmt.Errorf("%s env var is not supported and has been removed to prevent data fragmentation.\n"+
-				"The storage backend is set in .beads/metadata.json. To change it, use: bd migrate dolt (or bd migrate sqlite)", name)
+			return fmt.Errorf("%s env var is not supported. The storage backend is sqlite", name)
 		}
 	}
 	return nil

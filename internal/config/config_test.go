@@ -1143,12 +1143,6 @@ func TestSyncModeConstants(t *testing.T) {
 	if SyncModeRealtime != "realtime" {
 		t.Errorf("SyncModeRealtime = %q, want \"realtime\"", SyncModeRealtime)
 	}
-	if SyncModeDoltNative != "dolt-native" {
-		t.Errorf("SyncModeDoltNative = %q, want \"dolt-native\"", SyncModeDoltNative)
-	}
-	if SyncModeBeltAndSuspenders != "belt-and-suspenders" {
-		t.Errorf("SyncModeBeltAndSuspenders = %q, want \"belt-and-suspenders\"", SyncModeBeltAndSuspenders)
-	}
 }
 
 func TestSyncTriggerConstants(t *testing.T) {
@@ -1271,8 +1265,8 @@ func TestIsSyncModeValid(t *testing.T) {
 	}{
 		{string(SyncModeGitPortable), true},
 		{string(SyncModeRealtime), true},
-		{string(SyncModeDoltNative), true},
-		{string(SyncModeBeltAndSuspenders), true},
+		{"dolt-native", false},
+		{"belt-and-suspenders", false},
 		{"invalid-mode", false},
 		{"", false},
 	}
@@ -1439,90 +1433,17 @@ func TestShouldImportOnChange(t *testing.T) {
 	}
 }
 
-func TestNeedsDoltRemote(t *testing.T) {
-	// Isolate from environment variables
-	restore := envSnapshot(t)
-	defer restore()
-
-	tests := []struct {
-		mode        SyncMode
-		needsRemote bool
-	}{
-		{SyncModeGitPortable, false},
-		{SyncModeRealtime, false},
-		{SyncModeDoltNative, true},
-		{SyncModeBeltAndSuspenders, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(string(tt.mode), func(t *testing.T) {
-			if err := Initialize(); err != nil {
-				t.Fatalf("Initialize() returned error: %v", err)
-			}
-			Set("sync.mode", string(tt.mode))
-
-			if got := NeedsDoltRemote(); got != tt.needsRemote {
-				t.Errorf("NeedsDoltRemote() with mode=%s = %v, want %v", tt.mode, got, tt.needsRemote)
-			}
-		})
-	}
-}
-
 func TestNeedsJSONL(t *testing.T) {
-	// Isolate from environment variables
-	restore := envSnapshot(t)
-	defer restore()
-
-	tests := []struct {
-		mode       SyncMode
-		needsJSONL bool
-	}{
-		{SyncModeGitPortable, true},
-		{SyncModeRealtime, true},
-		{SyncModeDoltNative, false},
-		{SyncModeBeltAndSuspenders, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(string(tt.mode), func(t *testing.T) {
-			if err := Initialize(); err != nil {
-				t.Fatalf("Initialize() returned error: %v", err)
-			}
-			Set("sync.mode", string(tt.mode))
-
-			if got := NeedsJSONL(); got != tt.needsJSONL {
-				t.Errorf("NeedsJSONL() with mode=%s = %v, want %v", tt.mode, got, tt.needsJSONL)
-			}
-		})
+	// NeedsJSONL always returns true (all sync modes use JSONL)
+	if got := NeedsJSONL(); got != true {
+		t.Errorf("NeedsJSONL() = %v, want true", got)
 	}
 }
 
 func TestNeedsJSONLImport(t *testing.T) {
-	// Isolate from environment variables
-	restore := envSnapshot(t)
-	defer restore()
-
-	tests := []struct {
-		mode        SyncMode
-		needsImport bool
-	}{
-		{SyncModeGitPortable, true},
-		{SyncModeRealtime, true},
-		{SyncModeDoltNative, false},
-		{SyncModeBeltAndSuspenders, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(string(tt.mode), func(t *testing.T) {
-			if err := Initialize(); err != nil {
-				t.Fatalf("Initialize() returned error: %v", err)
-			}
-			Set("sync.mode", string(tt.mode))
-
-			if got := NeedsJSONLImport(); got != tt.needsImport {
-				t.Errorf("NeedsJSONLImport() with mode=%s = %v, want %v", tt.mode, got, tt.needsImport)
-			}
-		})
+	// NeedsJSONLImport always returns true (all sync modes use JSONL import)
+	if got := NeedsJSONLImport(); got != true {
+		t.Errorf("NeedsJSONLImport() = %v, want true", got)
 	}
 }
 

@@ -34,10 +34,6 @@ Without subcommand, detects and migrates database schema to current version:
 - Updates schema version metadata
 - Removes stale databases (with confirmation)
 
-Backend migration flags:
-  --to-dolt     Migrate from SQLite to Dolt backend
-  --to-sqlite   Migrate from Dolt to SQLite backend (escape hatch)
-
 Subcommands:
   hash-ids    Migrate sequential IDs to hash-based IDs (legacy)
   issues      Move issues between repositories
@@ -109,14 +105,7 @@ Subcommands:
 			os.Exit(1)
 		}
 
-		// For Dolt backend, handle metadata update directly via storage factory
-		// (detectDatabases only finds .db files, which don't exist for Dolt)
-		if cfg.GetBackend() == configfile.BackendDolt {
-			handleDoltMetadataUpdate(cfg, beadsDir, dryRun)
-			return
-		}
-
-		// Detect all database files (SQLite backend only)
+		// Detect all database files
 		databases, err := detectDatabases(beadsDir)
 		if err != nil {
 			if jsonOutput {
@@ -428,122 +417,6 @@ Subcommands:
 type dbInfo struct {
 	path    string
 	version string
-}
-
-// handleDoltMetadataUpdate handles version metadata updates for Dolt backends.
-// The standard migration flow (detectDatabases, rename .db files) is SQLite-only.
-// For Dolt, we just need to ensure version metadata is set correctly.
-func handleDoltMetadataUpdate(cfg *configfile.Config, beadsDir string, dryRun bool) {
-	doltPath := cfg.DatabasePath(beadsDir)
-
-	// Check if Dolt database directory exists
-	info, err := os.Stat(doltPath)
-	if err != nil || !info.IsDir() {
-		if jsonOutput {
-			outputJSON(map[string]interface{}{
-				"status":  "no_databases",
-				"message": "No Dolt database found in .beads/",
-			})
-		} else {
-			fmt.Fprintf(os.Stderr, "No Dolt database found at %s\n", doltPath)
-			fmt.Fprintf(os.Stderr, "Run 'bd init' to create a new database, or 'bd migrate --to-dolt' to migrate from SQLite.\n")
-		}
-		return
-	}
-
-	// Open database using storage factory
-	ctx := rootCtx
-	store, err := storagefactory.NewFromConfigWithOptions(ctx, beadsDir, storagefactory.Options{})
-	if err != nil {
-		if jsonOutput {
-			outputJSON(map[string]interface{}{
-				"error":   "open_failed",
-				"message": err.Error(),
-			})
-		} else {
-			fmt.Fprintf(os.Stderr, "Error: failed to open Dolt database: %v\n", err)
-		}
-		os.Exit(1)
-	}
-	defer func() { _ = store.Close() }()
-
-	// Check current version
-	currentVersion, _ := store.GetMetadata(ctx, "bd_version")
-	if currentVersion == Version {
-		if jsonOutput {
-			outputJSON(map[string]interface{}{
-				"status":  "current",
-				"message": fmt.Sprintf("Dolt database already at version %s", Version),
-			})
-		} else {
-			fmt.Printf("Dolt database version: %s\n", currentVersion)
-			fmt.Printf("%s\n", ui.RenderPass("✓ Version matches"))
-		}
-		return
-	}
-
-	if dryRun {
-		if jsonOutput {
-			outputJSON(map[string]interface{}{
-				"dry_run":              true,
-				"needs_version_update": true,
-				"current_version":      currentVersion,
-				"target_version":       Version,
-			})
-		} else {
-			fmt.Println("Dry run mode - no changes will be made")
-			fmt.Printf("Would update Dolt version: %s → %s\n", currentVersion, Version)
-		}
-		return
-	}
-
-	if !jsonOutput {
-		fmt.Printf("Updating Dolt schema version: %s → %s\n", currentVersion, Version)
-	}
-
-	// Detect and set issue_prefix if missing
-	prefix, err := store.GetConfig(ctx, "issue_prefix")
-	if err != nil || prefix == "" {
-		issues, err := store.SearchIssues(ctx, "", types.IssueFilter{})
-		if err == nil && len(issues) > 0 {
-			detectedPrefix := utils.ExtractIssuePrefix(issues[0].ID)
-			if detectedPrefix != "" {
-				if err := store.SetConfig(ctx, "issue_prefix", detectedPrefix); err != nil {
-					if !jsonOutput {
-						fmt.Fprintf(os.Stderr, "Warning: failed to set issue prefix: %v\n", err)
-					}
-				} else if !jsonOutput {
-					fmt.Printf("%s\n", ui.RenderPass(fmt.Sprintf("✓ Detected and set issue prefix: %s", detectedPrefix)))
-				}
-			}
-		}
-	}
-
-	// Update version metadata
-	if err := store.SetMetadata(ctx, "bd_version", Version); err != nil {
-		if jsonOutput {
-			outputJSON(map[string]interface{}{
-				"error":   "version_update_failed",
-				"message": err.Error(),
-			})
-		} else {
-			fmt.Fprintf(os.Stderr, "Error: failed to update version: %v\n", err)
-		}
-		os.Exit(1)
-	}
-
-	if jsonOutput {
-		outputJSON(map[string]interface{}{
-			"status":           "success",
-			"current_database": cfg.Database,
-			"backend":          "dolt",
-			"version":          Version,
-			"version_updated":  true,
-		})
-	} else {
-		fmt.Printf("%s\n", ui.RenderPass("✓ Version updated"))
-		fmt.Printf("\nDolt database: %s (version %s)\n", cfg.Database, Version)
-	}
 }
 
 func detectDatabases(beadsDir string) ([]*dbInfo, error) {

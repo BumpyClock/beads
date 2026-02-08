@@ -45,34 +45,14 @@ func TestSyncModeConfig(t *testing.T) {
 	}
 	t.Logf("✓ Can set and get realtime mode")
 
-	// Test 3: Set and get dolt-native mode
-	if err := SetSyncMode(ctx, testStore, SyncModeDoltNative); err != nil {
-		t.Fatalf("failed to set sync mode: %v", err)
-	}
-	mode = GetSyncMode(ctx, testStore)
-	if mode != SyncModeDoltNative {
-		t.Errorf("sync mode = %q, want %q", mode, SyncModeDoltNative)
-	}
-	t.Logf("✓ Can set and get dolt-native mode")
-
-	// Test 4: Set and get belt-and-suspenders mode
-	if err := SetSyncMode(ctx, testStore, SyncModeBeltAndSuspenders); err != nil {
-		t.Fatalf("failed to set sync mode: %v", err)
-	}
-	mode = GetSyncMode(ctx, testStore)
-	if mode != SyncModeBeltAndSuspenders {
-		t.Errorf("sync mode = %q, want %q", mode, SyncModeBeltAndSuspenders)
-	}
-	t.Logf("✓ Can set and get belt-and-suspenders mode")
-
-	// Test 5: Invalid mode returns error
+	// Test 3: Invalid mode returns error
 	err = SetSyncMode(ctx, testStore, "invalid-mode")
 	if err == nil {
 		t.Error("expected error for invalid sync mode")
 	}
 	t.Logf("✓ Invalid mode correctly rejected")
 
-	// Test 6: Invalid mode in DB defaults to git-portable
+	// Test 4: Invalid mode in DB defaults to git-portable
 	if err := testStore.SetConfig(ctx, SyncModeConfigKey, "invalid"); err != nil {
 		t.Fatalf("failed to set invalid config: %v", err)
 	}
@@ -106,8 +86,6 @@ func TestShouldExportJSONL(t *testing.T) {
 	}{
 		{SyncModeGitPortable, true},
 		{SyncModeRealtime, true},
-		{SyncModeDoltNative, false}, // dolt-native uses Dolt remotes, not JSONL
-		{SyncModeBeltAndSuspenders, true},
 	}
 
 	for _, tt := range tests {
@@ -124,10 +102,7 @@ func TestShouldExportJSONL(t *testing.T) {
 	}
 }
 
-// TestShouldExportJSONL_DirectDB verifies ShouldExportJSONL reads from the database
-// directly, not through GetSyncMode/viper. This catches the bug where viper loads
-// config.yaml from the wrong directory, causing GetSyncMode to return git-portable
-// even when the database has dolt-native.
+// TestShouldExportJSONL_DirectDB verifies ShouldExportJSONL always returns true.
 func TestShouldExportJSONL_DirectDB(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
@@ -144,20 +119,7 @@ func TestShouldExportJSONL_DirectDB(t *testing.T) {
 	}
 	defer testStore.Close()
 
-	// Set dolt-native directly in database (bypassing SetSyncMode/viper)
-	if err := testStore.SetConfig(ctx, SyncModeConfigKey, SyncModeDoltNative); err != nil {
-		t.Fatalf("failed to set config: %v", err)
-	}
-
-	// ShouldExportJSONL must return false — it reads the DB directly
-	if ShouldExportJSONL(ctx, testStore) {
-		t.Error("ShouldExportJSONL() = true, want false for dolt-native set in DB")
-	}
-
 	// Default (no config set) should return true
-	if err := testStore.SetConfig(ctx, SyncModeConfigKey, ""); err != nil {
-		t.Fatalf("failed to clear config: %v", err)
-	}
 	if !ShouldExportJSONL(ctx, testStore) {
 		t.Error("ShouldExportJSONL() = false, want true for default (no config)")
 	}
@@ -186,8 +148,6 @@ func TestShouldImportJSONL(t *testing.T) {
 	}{
 		{SyncModeGitPortable, true},
 		{SyncModeRealtime, true},
-		{SyncModeDoltNative, false},
-		{SyncModeBeltAndSuspenders, true},
 	}
 
 	for _, tt := range tests {
@@ -204,47 +164,6 @@ func TestShouldImportJSONL(t *testing.T) {
 	}
 }
 
-// TestShouldUseDoltRemote verifies Dolt remote usage per mode.
-func TestShouldUseDoltRemote(t *testing.T) {
-	ctx := context.Background()
-	tmpDir := t.TempDir()
-
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		t.Fatalf("mkdir failed: %v", err)
-	}
-
-	dbPath := filepath.Join(beadsDir, "beads.db")
-	testStore, err := sqlite.New(ctx, dbPath)
-	if err != nil {
-		t.Fatalf("failed to create store: %v", err)
-	}
-	defer testStore.Close()
-
-	tests := []struct {
-		mode    string
-		wantUse bool
-	}{
-		{SyncModeGitPortable, false},
-		{SyncModeRealtime, false},
-		{SyncModeDoltNative, true},
-		{SyncModeBeltAndSuspenders, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.mode, func(t *testing.T) {
-			if err := SetSyncMode(ctx, testStore, tt.mode); err != nil {
-				t.Fatalf("failed to set mode: %v", err)
-			}
-
-			got := ShouldUseDoltRemote(ctx, testStore)
-			if got != tt.wantUse {
-				t.Errorf("ShouldUseDoltRemote() = %v, want %v", got, tt.wantUse)
-			}
-		})
-	}
-}
-
 // TestSyncModeDescription verifies mode descriptions are meaningful.
 func TestSyncModeDescription(t *testing.T) {
 	tests := []struct {
@@ -253,8 +172,6 @@ func TestSyncModeDescription(t *testing.T) {
 	}{
 		{SyncModeGitPortable, "JSONL"},
 		{SyncModeRealtime, "every change"},
-		{SyncModeDoltNative, "export-only"},
-		{SyncModeBeltAndSuspenders, "Both"},
 		{"invalid", "unknown"},
 	}
 

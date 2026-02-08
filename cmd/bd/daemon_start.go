@@ -35,7 +35,6 @@ Examples:
   bd daemon start --foreground       # Run in foreground (for systemd/supervisord)
   bd daemon start --local            # Local-only mode (no git sync)
   bd daemon start --federation       # Enable federation mode (dolt sql-server)`,
-	PreRunE: guardDaemonStartForDolt,
 	Run: func(cmd *cobra.Command, args []string) {
 		interval, _ := cmd.Flags().GetDuration("interval")
 		autoCommit, _ := cmd.Flags().GetBool("auto-commit")

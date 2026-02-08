@@ -16,7 +16,6 @@ var availableBackends = []struct {
 	Description string
 }{
 	{"sqlite", "SQLite database (default) - single file, portable, no dependencies"},
-	{"dolt", "Dolt database - Git-like versioning for data, SQL interface"},
 	{"jsonl", "JSONL only (--no-db mode) - plain text, no database required"},
 }
 
@@ -28,11 +27,9 @@ var backendCmd = &cobra.Command{
 
 The backend determines how beads stores issue data:
   - sqlite: Default SQLite database (single file, portable)
-  - dolt:   Dolt database (Git-like versioning, SQL interface)
   - jsonl:  JSONL only mode (plain text, use with --no-db flag)
 
 The backend is set at initialization time with 'bd init --backend <type>'.
-To change backends, use 'bd migrate dolt' or reinitialize.
 
 Commands:
   bd backend list   List available backends
@@ -46,12 +43,10 @@ var backendListCmd = &cobra.Command{
 
 Available backends:
   sqlite  SQLite database (default) - single file, portable, no dependencies
-  dolt    Dolt database - Git-like versioning for data, SQL interface
   jsonl   JSONL only (--no-db mode) - plain text, no database required
 
 The backend is chosen at initialization time:
   bd init                    # Uses sqlite (default)
-  bd init --backend dolt     # Uses dolt
   bd init --no-db            # Uses jsonl only`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if jsonOutput {
@@ -73,7 +68,6 @@ The backend is chosen at initialization time:
 			fmt.Printf("  %-8s %s\n", b.Name, b.Description)
 		}
 		fmt.Println("\nSet backend at init time: bd init --backend <name>")
-		fmt.Println("Migrate to Dolt: bd migrate dolt")
 	},
 }
 
@@ -83,8 +77,7 @@ var backendShowCmd = &cobra.Command{
 	Long: `Show the current storage backend configuration.
 
 Displays:
-  - Current backend type (sqlite, dolt, or jsonl)
-  - Backend-specific settings (e.g., Dolt server mode)
+  - Current backend type (sqlite or jsonl)
   - Database location`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Find the beads directory
@@ -131,26 +124,6 @@ Displays:
 				"database":  cfg.DatabasePath(beadsDir),
 			}
 
-			// Add Dolt-specific info
-			if backend == configfile.BackendDolt {
-				result["dolt_mode"] = cfg.GetDoltMode()
-				if cfg.IsDoltServerMode() {
-					result["dolt_server_host"] = cfg.GetDoltServerHost()
-					result["dolt_server_port"] = cfg.GetDoltServerPort()
-					result["dolt_server_user"] = cfg.GetDoltServerUser()
-					result["dolt_database"] = cfg.GetDoltDatabase()
-				}
-			}
-
-			// Add migration info for SQLite backends (agent detection path)
-			if backend == configfile.BackendSQLite {
-				result["migration_available"] = true
-				if isPreferDoltConfigured(beadsDir) {
-					result["needs_migration"] = true
-					result["migration_command"] = "bd migrate dolt"
-				}
-			}
-
 			outputJSON(result)
 			return
 		}
@@ -169,15 +142,6 @@ Displays:
 		fmt.Printf("  Beads dir: %s\n", beadsDir)
 		fmt.Printf("  Database: %s\n", cfg.DatabasePath(beadsDir))
 
-		// Dolt-specific info
-		if backend == configfile.BackendDolt {
-			fmt.Printf("  Dolt mode: %s\n", cfg.GetDoltMode())
-			if cfg.IsDoltServerMode() {
-				fmt.Printf("  Server: %s:%d\n", cfg.GetDoltServerHost(), cfg.GetDoltServerPort())
-				fmt.Printf("  User: %s\n", cfg.GetDoltServerUser())
-				fmt.Printf("  Database: %s\n", cfg.GetDoltDatabase())
-			}
-		}
 	},
 }
 

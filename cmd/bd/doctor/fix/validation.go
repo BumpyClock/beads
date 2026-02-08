@@ -10,7 +10,6 @@ import (
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
-	"github.com/steveyegge/beads/internal/configfile"
 )
 
 // MergeArtifacts removes temporary git merge files from .beads directory.
@@ -107,14 +106,6 @@ func OrphanedDependencies(path string, verbose bool) error {
 	}
 
 	beadsDir := resolveBeadsDir(filepath.Join(path, ".beads"))
-
-	// Dolt backend: this fix uses raw SQL queries against SQLite, skip for now
-	cfg, _ := configfile.Load(beadsDir)
-	if cfg != nil && cfg.GetBackend() == configfile.BackendDolt {
-		fmt.Println("  Orphaned dependencies fix skipped (dolt backend — uses raw SQL)")
-		return nil
-	}
-
 	dbPath := filepath.Join(beadsDir, "beads.db")
 
 	// Open database
@@ -188,14 +179,6 @@ func ChildParentDependencies(path string, verbose bool) error {
 	}
 
 	beadsDir := resolveBeadsDir(filepath.Join(path, ".beads"))
-
-	// Dolt backend: this fix uses raw SQL queries against SQLite, skip for now
-	cfg, _ := configfile.Load(beadsDir)
-	if cfg != nil && cfg.GetBackend() == configfile.BackendDolt {
-		fmt.Println("  Child-parent dependencies fix skipped (dolt backend — uses raw SQL)")
-		return nil
-	}
-
 	dbPath := filepath.Join(beadsDir, "beads.db")
 
 	// Open database

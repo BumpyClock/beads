@@ -292,7 +292,9 @@ var versionChanges = []VersionChange{
 		Version: "0.49.6",
 		Date:    "2026-02-08",
 		Changes: []string{
-			"REVERT: Embedded Dolt mode restored (removal was only intended for Gas Town, not Beads)",
+			"CHANGE: Dolt backend fully removed from fork (archived at github.com/BumpyClock/beads-dolt)",
+			"CHANGE: CGO no longer required for builds - pure Go compilation",
+			"CHANGE: Sync modes reduced to git-portable and realtime (dolt-native, belt-and-suspenders removed)",
 		},
 	},
 	{

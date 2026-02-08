@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/steveyegge/beads/internal/config"
 )
 
 func TestCheckSyncDivergence(t *testing.T) {
@@ -123,50 +121,6 @@ func TestCheckSyncDivergence(t *testing.T) {
 		}
 	})
 
-	t.Run("JSONL differs in dolt-native mode suggests restore", func(t *testing.T) {
-		// Reset and initialize config for this test
-		config.ResetForTesting()
-		if err := config.Initialize(); err != nil {
-			t.Fatalf("Initialize failed: %v", err)
-		}
-		// Set sync mode to dolt-native for this test
-		config.Set("sync.mode", string(config.SyncModeDoltNative))
-		defer func() {
-			// Reset to clean state after test
-			config.ResetForTesting()
-			_ = config.Initialize()
-		}()
-
-		dir := mkTmpDirInTmp(t, "bd-sync-div-dolt-*")
-		initRepo(t, dir, "main")
-
-		// Create .beads with JSONL and commit it
-		beadsDir := filepath.Join(dir, ".beads")
-		if err := os.MkdirAll(beadsDir, 0755); err != nil {
-			t.Fatal(err)
-		}
-		jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
-		jsonlContent := `{"id":"test-1","title":"Test issue","status":"open"}` + "\n"
-		commitFile(t, dir, ".beads/issues.jsonl", jsonlContent, "add issues")
-
-		// Modify without committing
-		newContent := `{"id":"test-1","title":"Test issue","status":"closed"}` + "\n"
-		if err := os.WriteFile(jsonlPath, []byte(newContent), 0644); err != nil {
-			t.Fatal(err)
-		}
-
-		check := CheckSyncDivergence(dir)
-		if check.Status != StatusWarning && check.Status != StatusError {
-			t.Errorf("status=%q want warning or error (msg=%q)", check.Status, check.Message)
-		}
-		// In dolt-native mode, should suggest git restore, not git add
-		if !strings.Contains(check.Fix, "git restore") {
-			t.Errorf("fix=%q want git restore for dolt-native mode", check.Fix)
-		}
-		if strings.Contains(check.Fix, "git add") {
-			t.Errorf("fix=%q should NOT suggest git add in dolt-native mode", check.Fix)
-		}
-	})
 }
 
 func TestCheckSQLiteMtimeDivergence(t *testing.T) {

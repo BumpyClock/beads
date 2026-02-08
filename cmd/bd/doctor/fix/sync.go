@@ -12,7 +12,6 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
 	"github.com/steveyegge/beads/internal/configfile"
 )
 
@@ -28,12 +27,6 @@ func DBJSONLSync(path string) error {
 	}
 
 	beadsDir := resolveBeadsDir(filepath.Join(path, ".beads"))
-
-	// Dolt backend: DB-JSONL sync uses SQLite-specific issue counting, skip
-	if cfg, err := configfile.Load(beadsDir); err == nil && cfg != nil && cfg.GetBackend() == configfile.BackendDolt {
-		fmt.Println("  DB-JSONL sync skipped (dolt backend — sync is database-native)")
-		return nil
-	}
 
 	// Get database path (same logic as doctor package)
 	var dbPath string
@@ -209,8 +202,7 @@ func countJSONLIssues(jsonlPath string) (int, error) {
 }
 
 // SyncDivergence fixes JSONL-git divergence issues.
-// In dolt-native mode: restores JSONL from git HEAD (Dolt is source of truth).
-// In other modes: delegates to DBJSONLSync for appropriate sync direction.
+// Delegates to DBJSONLSync for appropriate sync direction.
 func SyncDivergence(path string) error {
 	// Validate workspace
 	if err := validateBeadsWorkspace(path); err != nil {
@@ -220,17 +212,11 @@ func SyncDivergence(path string) error {
 	beadsDir := filepath.Join(path, ".beads")
 	beadsDir = resolveBeadsDir(beadsDir)
 
-	// In dolt-native mode, restore JSONL from git HEAD since Dolt is source of truth
-	if config.GetSyncMode() == config.SyncModeDoltNative {
-		return restoreJSONLFromGitHead(path, beadsDir)
-	}
-
-	// For other modes, use the existing DB-JSONL sync logic
+	// Use the DB-JSONL sync logic
 	return DBJSONLSync(path)
 }
 
 // restoreJSONLFromGitHead restores the JSONL file from git HEAD.
-// This is used in dolt-native mode where Dolt is source of truth.
 func restoreJSONLFromGitHead(path, beadsDir string) error {
 	// Find JSONL file
 	var jsonlPath string

@@ -31,17 +31,7 @@ import (
 const largeClosedIssuesThreshold = 10000
 
 func CheckStaleClosedIssues(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
-
-	// Dolt backend: this check uses SQLite-specific queries, skip for now
-	if backend == configfile.BackendDolt {
-		return DoctorCheck{
-			Name:     "Stale Closed Issues",
-			Status:   StatusOK,
-			Message:  "N/A (dolt backend)",
-			Category: CategoryMaintenance,
-		}
-	}
+	_, beadsDir := getBackendAndBeadsDir(path)
 
 	// Load config and check if this check is enabled
 	cfg, err := configfile.Load(beadsDir)
@@ -207,19 +197,9 @@ func CheckExpiredTombstones(path string) DoctorCheck {
 // CheckStaleMolecules detects complete-but-unclosed molecules.
 // A molecule is stale if all children are closed but the root is still open.
 func CheckStaleMolecules(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
+	_, beadsDir := getBackendAndBeadsDir(path)
 
-	// Dolt backend: this check uses SQLite-specific queries, skip for now
-	if backend == configfile.BackendDolt {
-		return DoctorCheck{
-			Name:     "Stale Molecules",
-			Status:   StatusOK,
-			Message:  "N/A (dolt backend)",
-			Category: CategoryMaintenance,
-		}
-	}
-
-	// Open database using factory to respect backend configuration (bd-m2jr: SQLite fallback fix)
+	// Open database using factory to respect backend configuration
 	ctx := context.Background()
 	store, err := factory.NewFromConfig(ctx, beadsDir)
 	if err != nil {
@@ -280,31 +260,8 @@ func CheckStaleMolecules(path string) DoctorCheck {
 }
 
 // CheckCompactionCandidates detects issues eligible for compaction.
-// Note: Compaction is a SQLite-specific optimization. Dolt backends don't need compaction
-// as Dolt handles data management differently.
 func CheckCompactionCandidates(path string) DoctorCheck {
-	backend, beadsDir := getBackendAndBeadsDir(path)
-
-	// Dolt backend: this check uses SQLite-specific queries, skip for now
-	if backend == configfile.BackendDolt {
-		return DoctorCheck{
-			Name:     "Compaction Candidates",
-			Status:   StatusOK,
-			Message:  "N/A (dolt backend)",
-			Category: CategoryMaintenance,
-		}
-	}
-
-	// Check if backend is SQLite - compaction only applies to SQLite
-	cfg, _ := configfile.Load(beadsDir)
-	if cfg != nil && cfg.GetBackend() != configfile.BackendSQLite {
-		return DoctorCheck{
-			Name:     "Compaction Candidates",
-			Status:   StatusOK,
-			Message:  "N/A (compaction only applies to SQLite backend)",
-			Category: CategoryMaintenance,
-		}
-	}
+	_, beadsDir := getBackendAndBeadsDir(path)
 
 	// Open database using factory
 	ctx := context.Background()

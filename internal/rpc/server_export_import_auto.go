@@ -264,12 +264,6 @@ func (s *Server) checkAndAutoImportIfStale(req *Request) error {
 	ctx, cancel := s.reqCtx(req)
 	defer cancel()
 
-	// Skip auto-import in dolt-native mode — JSONL is export-only backup
-	mode, _ := store.GetConfig(ctx, "sync.mode")
-	if mode == "dolt-native" {
-		return nil
-	}
-
 	// Get database path from storage (Path() is part of Storage interface)
 	dbPath := store.Path()
 

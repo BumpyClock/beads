@@ -141,40 +141,6 @@ func TestExportStateJSON(t *testing.T) {
 	}
 }
 
-func TestUpdateExportStateCommit(t *testing.T) {
-	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	worktreeRoot := tmpDir
-
-	// Create initial state
-	initialState := &ExportState{
-		WorktreeRoot:     worktreeRoot,
-		LastExportCommit: "old-commit",
-		LastExportTime:   time.Now().Add(-time.Hour),
-		JSONLHash:        "oldhash",
-	}
-	if err := saveExportState(beadsDir, worktreeRoot, initialState); err != nil {
-		t.Fatalf("saveExportState() failed: %v", err)
-	}
-
-	// Update just the commit
-	updateExportStateCommit(beadsDir, worktreeRoot, "new-commit")
-
-	// Load and verify
-	loaded, err := loadExportState(beadsDir, worktreeRoot)
-	if err != nil {
-		t.Fatalf("loadExportState() failed: %v", err)
-	}
-
-	if loaded.LastExportCommit != "new-commit" {
-		t.Errorf("LastExportCommit = %s, want new-commit", loaded.LastExportCommit)
-	}
-	// JSONLHash should be preserved
-	if loaded.JSONLHash != "oldhash" {
-		t.Errorf("JSONLHash = %s, want oldhash (should be preserved)", loaded.JSONLHash)
-	}
-}
-
 func TestComputeJSONLHashForHook(t *testing.T) {
 	tmpDir := t.TempDir()
 

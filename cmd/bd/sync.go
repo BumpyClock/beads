@@ -14,7 +14,6 @@ import (
 	"github.com/steveyegge/beads/internal/beads"
 	"github.com/steveyegge/beads/internal/config"
 	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/storage"
 	"github.com/steveyegge/beads/internal/syncbranch"
 )
 
@@ -498,36 +497,9 @@ func doPullFirstSync(ctx context.Context, jsonlPath string, renameOnImport, noGi
 
 	// Step 3: Pull from remote
 	// Mode-specific pull behavior:
-	// - dolt-native/belt-and-suspenders with Dolt remote: Pull from Dolt
 	// - sync.branch configured: Pull from sync branch via worktree
 	// - Default (git-portable): Normal git pull
-	syncMode := GetSyncMode(ctx, store)
-	shouldUseDolt := ShouldUseDoltRemote(ctx, store)
-
-	if shouldUseDolt {
-		// Try Dolt pull for dolt-native and belt-and-suspenders modes
-		rs, ok := storage.AsRemote(store)
-		if ok {
-			fmt.Println("→ Pulling from Dolt remote...")
-			if err := rs.Pull(ctx); err != nil {
-				// Don't fail if no remote configured
-				if strings.Contains(err.Error(), "remote") {
-					fmt.Println("⚠ No Dolt remote configured, skipping Dolt pull")
-				} else {
-					return fmt.Errorf("dolt pull failed: %w", err)
-				}
-			} else {
-				fmt.Println("✓ Pulled from Dolt remote")
-			}
-		} else if syncMode == SyncModeDoltNative {
-			return fmt.Errorf("dolt-native sync mode requires Dolt backend")
-		}
-		// For belt-and-suspenders, continue with git pull even if Dolt pull failed
-	}
-
-	// Git-based pull (for git-portable, belt-and-suspenders, or when Dolt not available)
-	// In dolt-native mode, skip git pull for JSONL (JSONL is export-only backup)
-	if syncMode != SyncModeDoltNative {
+	{
 		if sbc.IsConfigured() {
 			fmt.Printf("→ Pulling from sync branch '%s'...\n", sbc.Branch)
 			pullResult, err := syncbranch.PullFromSyncBranch(ctx, sbc.RepoRoot, sbc.Branch, jsonlPath, false)
@@ -549,13 +521,6 @@ func doPullFirstSync(ctx context.Context, jsonlPath string, renameOnImport, noGi
 				return fmt.Errorf("pulling: %w", err)
 			}
 		}
-	}
-
-	// For dolt-native mode, we're done after pulling from Dolt remote
-	// Dolt handles merging internally, no JSONL workflow needed
-	if syncMode == SyncModeDoltNative {
-		fmt.Println("\n✓ Sync complete (dolt-native mode)")
-		return nil
 	}
 
 	// Step 4: Load remote state from JSONL (after pull)
@@ -731,65 +696,20 @@ func writeMergedStateToJSONL(path string, issues []*beads.Issue) error {
 	return os.Rename(tempPath, path)
 }
 
-// doExportSync exports the current database state based on sync mode.
-// - git-portable, realtime: Export to JSONL
-// - dolt-native: Commit and push to Dolt remote (skip JSONL)
-// - belt-and-suspenders: Both JSONL export and Dolt push
+// doExportSync exports the current database state to JSONL.
 // Does NOT stage or commit to git - that's the user's job.
 func doExportSync(ctx context.Context, jsonlPath string, force, dryRun bool) error {
 	if err := ensureStoreActive(); err != nil {
 		return fmt.Errorf("failed to initialize store: %w", err)
 	}
 
-	syncMode := GetSyncMode(ctx, store)
-	shouldExportJSONL := ShouldExportJSONL(ctx, store)
-	shouldUseDolt := ShouldUseDoltRemote(ctx, store)
-
 	if dryRun {
-		if shouldExportJSONL {
-			fmt.Println("→ [DRY RUN] Would export database to JSONL")
-		}
-		if shouldUseDolt {
-			fmt.Println("→ [DRY RUN] Would commit and push to Dolt remote")
-		}
+		fmt.Println("→ [DRY RUN] Would export database to JSONL")
 		return nil
 	}
 
-	// Handle Dolt remote operations for dolt-native and belt-and-suspenders modes
-	if shouldUseDolt {
-		rs, ok := storage.AsRemote(store)
-		if !ok {
-			if syncMode == SyncModeDoltNative {
-				return fmt.Errorf("dolt-native sync mode requires Dolt backend (current backend doesn't support remote operations)")
-			}
-			// belt-and-suspenders: warn but continue with JSONL
-			fmt.Println("⚠ Dolt remote not available, falling back to JSONL-only")
-		} else {
-			fmt.Println("→ Committing to Dolt...")
-			// We are explicitly creating a Dolt commit inside sync; avoid redundant auto-commit in PersistentPostRun.
-			commandDidExplicitDoltCommit = true
-			if err := rs.Commit(ctx, "bd sync: auto-commit"); err != nil {
-				// Ignore "nothing to commit" errors
-				if !strings.Contains(err.Error(), "nothing to commit") {
-					return fmt.Errorf("dolt commit failed: %w", err)
-				}
-			}
-
-			fmt.Println("→ Pushing to Dolt remote...")
-			if err := rs.Push(ctx); err != nil {
-				// Don't fail if no remote configured
-				if !strings.Contains(err.Error(), "remote") {
-					return fmt.Errorf("dolt push failed: %w", err)
-				}
-				fmt.Println("⚠ No Dolt remote configured, skipping push")
-			} else {
-				fmt.Println("✓ Pushed to Dolt remote")
-			}
-		}
-	}
-
-	// Export to JSONL for git-portable, realtime, and belt-and-suspenders modes
-	if shouldExportJSONL {
+	// Export to JSONL
+	{
 		fmt.Println("Exporting beads to JSONL...")
 
 		// Get count of dirty (changed) issues for incremental tracking
@@ -1330,7 +1250,7 @@ func init() {
 	syncCmd.Flags().Bool("theirs", false, "Use 'theirs' strategy for conflict resolution (with --resolve)")
 	syncCmd.Flags().Bool("manual", false, "Use interactive manual resolution for conflicts (with --resolve)")
 	syncCmd.Flags().Bool("force", false, "Force full export/import (skip incremental optimization)")
-	syncCmd.Flags().String("set-mode", "", "Set sync mode (git-portable, realtime, dolt-native, belt-and-suspenders)")
+	syncCmd.Flags().String("set-mode", "", "Set sync mode (git-portable, realtime)")
 	rootCmd.AddCommand(syncCmd)
 }
 

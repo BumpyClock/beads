@@ -121,28 +121,21 @@ func TestFindDatabaseInBeadsDir_WithMetadataJSON(t *testing.T) {
 	}
 }
 
-// TestFindDatabaseInBeadsDir_DoltBackend tests the Dolt backend path in metadata.json
+// TestFindDatabaseInBeadsDir_DoltBackend tests that dolt backend in metadata.json
+// falls through to the canonical beads.db fallback (Dolt backend has been removed).
 func TestFindDatabaseInBeadsDir_DoltBackend(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create metadata.json with dolt backend
+	// Create metadata.json with dolt backend (legacy config)
 	metadataContent := `{"backend": "dolt"}`
 	if err := os.WriteFile(filepath.Join(tmpDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	// Create the dolt directory
-	doltDir := filepath.Join(tmpDir, "dolt")
-	if err := os.MkdirAll(doltDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-
+	// No beads.db exists, so should return empty string
 	result := findDatabaseInBeadsDir(tmpDir, false)
-
-	resultResolved, _ := filepath.EvalSymlinks(result)
-	expectedResolved, _ := filepath.EvalSymlinks(doltDir)
-	if resultResolved != expectedResolved {
-		t.Errorf("findDatabaseInBeadsDir() with dolt = %q, want %q", result, doltDir)
+	if result != "" {
+		t.Errorf("findDatabaseInBeadsDir() with dolt backend = %q, want empty (no db file)", result)
 	}
 }
 

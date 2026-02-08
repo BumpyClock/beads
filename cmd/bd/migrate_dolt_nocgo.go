@@ -1,4 +1,3 @@
-//go:build !cgo
 package main
 
 import (
@@ -6,34 +5,30 @@ import (
 	"os"
 )
 
-// handleToDoltMigration is a stub for non-cgo builds.
-// Dolt requires CGO, so this migration is not available.
+// handleToDoltMigration is a stub; Dolt backend has been removed.
 func handleToDoltMigration(dryRun bool, autoYes bool) {
 	if jsonOutput {
 		outputJSON(map[string]interface{}{
 			"error":   "dolt_not_available",
-			"message": "Dolt backend requires CGO. This binary was built without CGO support.",
+			"message": "Dolt backend has been removed. See github.com/BumpyClock/beads-dolt",
 		})
 	} else {
-		fmt.Fprintf(os.Stderr, "Error: Dolt backend requires CGO\n")
-		fmt.Fprintf(os.Stderr, "This binary was built without CGO support.\n")
-		fmt.Fprintf(os.Stderr, "To use Dolt, rebuild with: CGO_ENABLED=1 go build\n")
+		fmt.Fprintf(os.Stderr, "Error: Dolt backend has been removed.\n")
+		fmt.Fprintf(os.Stderr, "See github.com/BumpyClock/beads-dolt\n")
 	}
 	os.Exit(1)
 }
 
-// handleToSQLiteMigration is a stub for non-cgo builds.
-// Dolt requires CGO, so this migration from Dolt is not available.
+// handleToSQLiteMigration is a stub; Dolt backend has been removed.
 func handleToSQLiteMigration(dryRun bool, autoYes bool) {
 	if jsonOutput {
 		outputJSON(map[string]interface{}{
 			"error":   "dolt_not_available",
-			"message": "Dolt backend requires CGO. This binary was built without CGO support.",
+			"message": "Dolt backend has been removed. See github.com/BumpyClock/beads-dolt",
 		})
 	} else {
-		fmt.Fprintf(os.Stderr, "Error: Dolt backend requires CGO\n")
-		fmt.Fprintf(os.Stderr, "This binary was built without CGO support.\n")
-		fmt.Fprintf(os.Stderr, "To use Dolt, rebuild with: CGO_ENABLED=1 go build\n")
+		fmt.Fprintf(os.Stderr, "Error: Dolt backend has been removed.\n")
+		fmt.Fprintf(os.Stderr, "See github.com/BumpyClock/beads-dolt\n")
 	}
 	os.Exit(1)
 }

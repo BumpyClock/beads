@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
 	"github.com/steveyegge/beads/internal/storage/factory"
 )
 
@@ -57,26 +56,13 @@ func CheckKVSyncStatus(path string) DoctorCheck {
 		}
 	}
 
-	// Check sync mode
-	syncMode := config.GetSyncMode()
-
-	// In dolt-native or belt-and-suspenders, KV data syncs via Dolt
-	if syncMode == config.SyncModeDoltNative || syncMode == config.SyncModeBeltAndSuspenders {
-		return DoctorCheck{
-			Name:     "KV Store Sync",
-			Status:   StatusOK,
-			Message:  formatKVCount(kvCount) + " (syncs via Dolt)",
-			Category: CategoryData,
-		}
-	}
-
-	// In git-portable or realtime mode, KV data is local-only
+	// KV data is local-only (not synced via JSONL)
 	return DoctorCheck{
 		Name:     "KV Store Sync",
 		Status:   StatusWarning,
 		Message:  formatKVCount(kvCount) + " (local only, won't sync)",
 		Detail:   "KV data is stored in the config table which is not exported to JSONL. In git-portable mode, this data stays local to each clone.",
-		Fix:      "Use dolt-native sync mode for KV sync, or accept local-only KV storage",
+		Fix:      "KV data is local-only in git-portable mode. Accept local-only KV storage or use an external sync mechanism.",
 		Category: CategoryData,
 	}
 }

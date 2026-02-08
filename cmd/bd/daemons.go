@@ -227,8 +227,7 @@ var daemonsRestartCmd = &cobra.Command{
 	Short: "Restart a specific bd daemon",
 	Long: `Restart a specific bd daemon by workspace path or PID.
 Stops the daemon gracefully, then starts a new one.`,
-	Args:    cobra.ExactArgs(1),
-	PreRunE: guardDaemonStartForDolt,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		target := args[0]
 		searchRoots, _ := cmd.Flags().GetStringSlice("search")

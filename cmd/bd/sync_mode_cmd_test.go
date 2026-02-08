@@ -63,9 +63,9 @@ func TestSyncModeListJSON(t *testing.T) {
 		t.Fatalf("failed to parse JSON output: %v\nOutput: %s", err, output)
 	}
 
-	// Verify we have 4 modes
-	if len(result.Modes) != 4 {
-		t.Errorf("expected 4 modes, got %d", len(result.Modes))
+	// Verify we have 2 modes
+	if len(result.Modes) != 2 {
+		t.Errorf("expected 2 modes, got %d", len(result.Modes))
 	}
 
 	// Verify mode names match valid sync modes
@@ -219,8 +219,8 @@ func TestSyncModeCurrentWithoutStore(t *testing.T) {
 
 // TestSyncModeInfoStructure verifies the syncModeInfo slice is well-formed.
 func TestSyncModeInfoStructure(t *testing.T) {
-	if len(syncModeInfo) != 4 {
-		t.Errorf("expected 4 sync modes, got %d", len(syncModeInfo))
+	if len(syncModeInfo) != 2 {
+		t.Errorf("expected 2 sync modes, got %d", len(syncModeInfo))
 	}
 
 	for i, m := range syncModeInfo {
@@ -334,8 +334,8 @@ func TestSyncModeValidation(t *testing.T) {
 	}{
 		{"git-portable", true},
 		{"realtime", true},
-		{"dolt-native", true},
-		{"belt-and-suspenders", true},
+		{"dolt-native", false},
+		{"belt-and-suspenders", false},
 		{"GIT-PORTABLE", true}, // Case insensitive
 		{"Git-Portable", true}, // Case insensitive
 		{" realtime ", true},   // Whitespace trimmed

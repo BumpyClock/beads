@@ -1,4 +1,3 @@
-//go:build !cgo
 package main
 
 import (
@@ -6,7 +5,7 @@ import (
 	"errors"
 )
 
-// DoltServerHandle is a stub for non-CGO builds
+// DoltServerHandle is a stub; Dolt backend has been removed.
 type DoltServerHandle struct{}
 
 // DoltDefaultSQLPort is the default SQL port for dolt server
@@ -15,35 +14,35 @@ const DoltDefaultSQLPort = 3306
 // DoltDefaultRemotesAPIPort is the default remotesapi port for dolt server
 const DoltDefaultRemotesAPIPort = 50051
 
-// ErrDoltRequiresCGO is returned when dolt features are requested without CGO
-var ErrDoltRequiresCGO = errors.New("dolt backend requires CGO; use pre-built binaries from GitHub releases or enable CGO")
+// ErrDoltRequiresCGO is returned when dolt features are requested.
+var ErrDoltRequiresCGO = errors.New("dolt backend has been removed; see github.com/BumpyClock/beads-dolt")
 
-// StartDoltServer returns an error in non-CGO builds
+// StartDoltServer returns an error; Dolt backend has been removed.
 func StartDoltServer(ctx context.Context, dataDir, logFile string, sqlPort, remotePort int) (*DoltServerHandle, error) {
 	return nil, ErrDoltRequiresCGO
 }
 
-// Stop is a no-op stub
+// Stop is a no-op stub.
 func (h *DoltServerHandle) Stop() error {
 	return nil
 }
 
-// SQLPort returns 0 in non-CGO builds
+// SQLPort returns 0; Dolt backend has been removed.
 func (h *DoltServerHandle) SQLPort() int {
 	return 0
 }
 
-// RemotesAPIPort returns 0 in non-CGO builds
+// RemotesAPIPort returns 0; Dolt backend has been removed.
 func (h *DoltServerHandle) RemotesAPIPort() int {
 	return 0
 }
 
-// Host returns empty string in non-CGO builds
+// Host returns empty string; Dolt backend has been removed.
 func (h *DoltServerHandle) Host() string {
 	return ""
 }
 
-// DoltServerAvailable returns false when CGO is not available
+// DoltServerAvailable returns false; Dolt backend has been removed.
 func DoltServerAvailable() bool {
 	return false
 }

@@ -38,8 +38,8 @@ func Permissions(path string) error {
 		}
 	}
 
-	// Fix permissions on database file/directory if it exists
-	// Resolve the actual database path from config (supports both SQLite and Dolt)
+	// Fix permissions on database file if it exists
+	// Resolve the actual database path from config
 	beadsDirResolved := resolveBeadsDir(beadsDir)
 	var dbPath string
 	if cfg, err := configfile.Load(beadsDirResolved); err == nil && cfg != nil {
@@ -55,16 +55,8 @@ func Permissions(path string) error {
 			return nil
 		}
 
-		if dbInfo.IsDir() {
-			// Dolt backend: database is a directory, ensure 0700 (owner rwx)
-			expectedDirMode := os.FileMode(0700)
-			if dbInfo.Mode().Perm() != expectedDirMode {
-				if err := os.Chmod(dbPath, expectedDirMode); err != nil {
-					return fmt.Errorf("failed to fix database directory permissions: %w", err)
-				}
-			}
-		} else {
-			// SQLite backend: database is a file, ensure 0600 (owner rw)
+		if !dbInfo.IsDir() {
+			// Database is a file, ensure 0600 (owner rw)
 			expectedFileMode := os.FileMode(0600)
 			if dbInfo.Mode().Perm() != expectedFileMode {
 				if err := os.Chmod(dbPath, expectedFileMode); err != nil {
