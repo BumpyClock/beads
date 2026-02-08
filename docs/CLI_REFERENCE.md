@@ -725,8 +725,7 @@ bd kv list --json                      # Machine-readable output
 
 **Storage notes:**
 - KV data is stored in the local database with a `kv.` prefix
-- In `dolt-native` or `belt-and-suspenders` sync modes, KV data syncs via Dolt remotes
-- In `git-portable` mode, KV data stays local (not exported to JSONL)
+- KV data stays local (not exported to JSONL)
 
 **Use cases:**
 - Feature flags: `bd set debug_mode true`

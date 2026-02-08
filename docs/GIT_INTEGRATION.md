@@ -461,8 +461,7 @@ See [MULTI_REPO_MIGRATION.md](MULTI_REPO_MIGRATION.md) for complete guide.
 - Import from JSONL: when file is newer than DB
 - Commit/push: configurable via `--auto-commit` / `--auto-push`
 
-**Note:** `--auto-commit` here refers to **git commits** (typically to the sync branch).  
-For the Dolt backend, use `dolt.auto-commit` / `--dolt-auto-commit` to control **Dolt history commits**.
+**Note:** `--auto-commit` here refers to **git commits** (typically to the sync branch).
 
 **30-second debounce provides transaction window:**
 - Multiple changes within 30s get batched

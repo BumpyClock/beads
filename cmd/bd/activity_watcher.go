@@ -27,7 +27,7 @@ type ActivityWatcher struct {
 }
 
 // NewActivityWatcher creates a watcher for activity feed updates.
-// Watches the dolt noms directory for commits, falling back to polling if fsnotify fails.
+// Watches JSONL/beads paths, falling back to polling if fsnotify fails.
 // The beadsDir should be the .beads directory path.
 // The pollInterval is used for polling fallback mode.
 func NewActivityWatcher(beadsDir string, pollInterval time.Duration) *ActivityWatcher {
@@ -37,25 +37,22 @@ func NewActivityWatcher(beadsDir string, pollInterval time.Duration) *ActivityWa
 		lastModTimes: make(map[string]time.Time),
 	}
 
-	// Determine watch paths - prefer dolt noms directory if it exists
-	doltNomsPath := filepath.Join(beadsDir, "dolt", ".dolt", "noms")
-	doltPath := filepath.Join(beadsDir, "dolt", ".dolt")
+	// Determine watch paths (JSONL first, directory fallback).
 	jsonlPath := filepath.Join(beadsDir, "issues.jsonl")
 
-	// Build list of paths to watch (in priority order)
+	// Build list of paths to watch.
 	var watchPaths []string
-	if stat, err := os.Stat(doltNomsPath); err == nil && stat.IsDir() {
-		// Watch dolt noms directory for commits
-		watchPaths = append(watchPaths, doltNomsPath)
-	} else if stat, err := os.Stat(doltPath); err == nil && stat.IsDir() {
-		// Fallback to .dolt directory
-		watchPaths = append(watchPaths, doltPath)
-	}
-	// Also watch JSONL for non-dolt or hybrid setups
 	if _, err := os.Stat(jsonlPath); err == nil {
 		watchPaths = append(watchPaths, jsonlPath)
 	}
-	// Watch the beads dir itself as last resort
+	// Always watch the beads dir for create/remove/rename events.
+	watchPaths = append(watchPaths, beadsDir)
+	// De-duplicate if jsonlPath == beadsDir (unlikely, but safe).
+	if len(watchPaths) == 2 && watchPaths[0] == watchPaths[1] {
+		watchPaths = watchPaths[:1]
+	}
+
+	// Fallback safety.
 	if len(watchPaths) == 0 {
 		watchPaths = append(watchPaths, beadsDir)
 	}

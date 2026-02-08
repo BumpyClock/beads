@@ -18,9 +18,6 @@ First time in a repository:
 # Basic setup (prompts for contributor mode)
 bd init
 
-# Dolt backend (version-controlled SQL database)
-bd init --backend dolt
-
 # OSS contributor (fork workflow with separate planning repo)
 bd init --contributor
 
@@ -41,9 +38,6 @@ The wizard will:
 
 Notes:
 - SQLite backend stores data in `.beads/beads.db`.
-- Dolt backend stores data in `.beads/dolt/` and records `"database": "dolt"` in `.beads/metadata.json`.
-- Dolt backend runs **single-process-only**; daemon mode is disabled.
-- Dolt backend **auto-commits** after each successful write command by default (`dolt.auto-commit: on`). Disable with `bd --dolt-auto-commit off ...` or config.
 
 ### Role Configuration
 

@@ -13,7 +13,7 @@ const ConfigFileName = "metadata.json"
 type Config struct {
 	Database    string `json:"database"`
 	JSONLExport string `json:"jsonl_export,omitempty"`
-	Backend     string `json:"backend,omitempty"` // "sqlite" (default) or "dolt"
+	Backend     string `json:"backend,omitempty"` // "sqlite" (default)
 
 	// Deletions configuration
 	DeletionsRetentionDays int `json:"deletions_retention_days,omitempty"` // 0 means use default (3 days)
@@ -139,7 +139,6 @@ func (c *Config) GetStaleClosedIssuesDays() int {
 // Backend constants
 const (
 	BackendSQLite = "sqlite"
-	BackendDolt   = "dolt"
 )
 
 // BackendCapabilities describes behavioral constraints for a storage backend.
@@ -159,10 +158,8 @@ func CapabilitiesForBackend(backend string) BackendCapabilities {
 	switch strings.TrimSpace(strings.ToLower(backend)) {
 	case "", BackendSQLite:
 		return BackendCapabilities{SingleProcessOnly: false}
-	case BackendDolt:
-		// Backward compat: old configs with backend=dolt are single-process-only.
-		return BackendCapabilities{SingleProcessOnly: true}
 	default:
+		// Unknown/legacy backend values are treated conservatively.
 		return BackendCapabilities{SingleProcessOnly: true}
 	}
 }
@@ -179,4 +176,3 @@ func (c *Config) GetBackend() string {
 	}
 	return c.Backend
 }
-

@@ -171,8 +171,8 @@ func TestGetCapabilities(t *testing.T) {
 			wantSingleProc: false,
 		},
 		{
-			name:           "dolt backend is single-process",
-			cfg:            &Config{Backend: BackendDolt},
+			name:           "legacy backend value is single-process",
+			cfg:            &Config{Backend: "dolt"},
 			wantSingleProc: true,
 		},
 		{

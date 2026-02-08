@@ -16,9 +16,6 @@ First time in a repository:
 # Basic setup
 bd init
 
-# Dolt backend (version-controlled SQL database)
-bd init --backend dolt
-
 # For AI agents (non-interactive)
 bd init --quiet
 
@@ -41,12 +38,6 @@ The wizard will:
 
 Notes:
 - SQLite backend stores data in `.beads/beads.db`.
-- Dolt backend stores data in `.beads/dolt/` and records `"database": "dolt"` in `.beads/metadata.json`.
-- Dolt backend runs **single-process-only**; daemon mode is disabled.
-
-Notes:
-- SQLite backend stores data in `.beads/beads.db`.
-- Dolt backend stores data in `.beads/dolt/` and records `"database": "dolt"` in `.beads/metadata.json`.
 
 ## Your First Issues
 

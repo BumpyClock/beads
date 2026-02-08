@@ -776,7 +776,7 @@ var createCmd = &cobra.Command{
 
 // flushRoutedRepo ensures the target repo's JSONL is updated after routing an issue.
 // This is critical for multi-repo hydration to work correctly (bd-fix-routing).
-// Always writes local JSONL as a safety net (even in dolt-native mode).
+// Always writes local JSONL as a safety net.
 func flushRoutedRepo(targetStore storage.Storage, repoPath string) {
 	ctx := context.Background()
 

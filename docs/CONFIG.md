@@ -39,9 +39,8 @@ Tool-level settings you can configure:
 | `sync.export_on` | - | `BD_SYNC_EXPORT_ON` | `push` | When to export: `push`, `change` |
 | `sync.import_on` | - | `BD_SYNC_IMPORT_ON` | `pull` | When to import: `pull`, `change` |
 | `conflict.strategy` | - | `BD_CONFLICT_STRATEGY` | `newest` | Conflict resolution: `newest`, `ours`, `theirs`, `manual` |
-| `federation.remote` | - | `BD_FEDERATION_REMOTE` | (none) | Dolt remote URL for federation |
-| `federation.sovereignty` | - | `BD_FEDERATION_SOVEREIGNTY` | (none) | Data sovereignty tier: `T1`, `T2`, `T3`, `T4` |
-| `dolt.auto-commit` | `--dolt-auto-commit` | `BD_DOLT_AUTO_COMMIT` | `on` | (Dolt backend) Automatically create a Dolt commit after successful write commands |
+| `federation.remote` | - | `BD_FEDERATION_REMOTE` | (none) | Optional remote metadata (legacy) |
+| `federation.sovereignty` | - | `BD_FEDERATION_SOVEREIGNTY` | (none) | Optional sovereignty metadata (legacy) |
 | `create.require-description` | - | `BD_CREATE_REQUIRE_DESCRIPTION` | `false` | Require description when creating issues |
 | `validation.on-create` | - | `BD_VALIDATION_ON_CREATE` | `none` | Template validation on create: `none`, `warn`, `error` |
 | `validation.on-sync` | - | `BD_VALIDATION_ON_SYNC` | `none` | Template validation before sync: `none`, `warn`, `error` |
@@ -58,34 +57,8 @@ Tool-level settings you can configure:
 | `daemon-log-max-age` | - | `BEADS_DAEMON_LOG_MAX_AGE` | `30` | Max days to keep old log files |
 | `daemon-log-compress` | - | `BEADS_DAEMON_LOG_COMPRESS` | `true` | Compress rotated log files |
 
-**Backend note (SQLite vs Dolt):**
-- **SQLite** supports daemon mode and auto-start.
-- **Dolt (embedded)** is treated as **single-process-only**. Daemon mode and auto-start are disabled; `auto-start-daemon` has no effect. If you need daemon mode, use the SQLite backend (`bd init --backend sqlite`).
-
-### Dolt Auto-Commit (SQL commit vs Dolt commit)
-
-When using the **Dolt backend**, there are two different kinds of “commit”:
-
-- **SQL transaction commit**: what happens when a `bd` command updates tables successfully (durable in the Dolt *working set*).
-- **Dolt version-control commit**: what records those changes into Dolt’s *history* (visible in `bd vc log`, push/pull/merge workflows).
-
-By default, `bd` is configured to **auto-commit Dolt history after each successful write command**:
-
-- **Default**: `dolt.auto-commit: on`
-- **Disable for a single command**:
-
-```bash
-bd --dolt-auto-commit off create "No commit for this one"
-```
-
-- **Disable in config** (`.beads/config.yaml` or `~/.config/bd/config.yaml`):
-
-```yaml
-dolt:
-  auto-commit: off
-```
-
-**Caveat:** enabling this creates **more Dolt commits** over time (one per write command). This is intentional so changes are not left only in the working set.
+**Backend note:**
+- This fork supports SQLite + JSONL workflows.
 
 ### Actor Identity Resolution
 
@@ -107,7 +80,7 @@ export BD_ACTOR="my-github-handle"
 
 ### Sync Mode Configuration
 
-The sync mode controls how beads synchronizes data with git and/or Dolt remotes.
+The sync mode controls how beads synchronizes data with git/JSONL workflows.
 
 #### Sync Modes
 
@@ -115,8 +88,6 @@ The sync mode controls how beads synchronizes data with git and/or Dolt remotes.
 |------|-------------|
 | `git-portable` | (default) Export JSONL on push, import on pull. Standard git-based workflow. |
 | `realtime` | Export JSONL on every database change. Legacy behavior, higher I/O. |
-| `dolt-native` | Use Dolt remotes directly for sync. JSONL is not used for sync (but manual `bd import` / `bd export` still work). |
-| `belt-and-suspenders` | Both Dolt remote AND JSONL backup. Maximum redundancy. |
 
 #### Sync Triggers
 
@@ -136,41 +107,30 @@ When merging conflicting changes:
 | `theirs` | Always keep the remote version |
 | `manual` | Require interactive resolution for each conflict |
 
-#### Federation Configuration
+#### Federation Configuration (Legacy Metadata)
 
-For Dolt-native or belt-and-suspenders modes:
+These keys can still exist in config for compatibility:
 
-- `federation.remote`: Dolt remote URL (e.g., `dolthub://org/beads`, `gs://bucket/beads`, `s3://bucket/beads`)
-- `federation.sovereignty`: Data sovereignty tier:
-  - `T1`: Full sovereignty - data never leaves controlled infrastructure
-  - `T2`: Regional sovereignty - data stays within region/jurisdiction
-  - `T3`: Provider sovereignty - data with trusted cloud provider
-  - `T4`: No restrictions - data can be anywhere
+- `federation.remote`
+- `federation.sovereignty`
 
 #### Example Sync Configuration
 
 ```yaml
 # .beads/config.yaml
 sync:
-  mode: git-portable    # git-portable | realtime | dolt-native | belt-and-suspenders
+  mode: git-portable    # git-portable | realtime
   export_on: push       # push | change
   import_on: pull       # pull | change
 
 conflict:
   strategy: newest      # newest | ours | theirs | manual
-
-# Optional: Dolt federation for dolt-native or belt-and-suspenders modes
-federation:
-  remote: dolthub://myorg/beads
-  sovereignty: T2
 ```
 
 #### When to Use Each Mode
 
 - **git-portable** (default): Best for most teams. JSONL is committed to git, works with any git hosting.
 - **realtime**: Use when you need instant JSONL updates (e.g., file watchers, CI triggers on JSONL changes).
-- **dolt-native**: Use when you have Dolt infrastructure and want database-level sync; JSONL remains available for portability/audits/manual workflows.
-- **belt-and-suspenders**: Use for critical data where you want both Dolt sync AND git-portable backup.
 
 ### Example Config File
 

@@ -318,3 +318,36 @@ Manual smoke:
   - `docs/CONFIG.md`, `docs/QUICKSTART.md`, `docs/GIT_INTEGRATION.md`, `docs/CLI_REFERENCE.md`, `website/docs/getting-started/quickstart.md` still reference Dolt modes/flags.
 - Tests/comments:
   - many tests still mention `dolt-native`/`belt-and-suspenders` as invalid legacy values (mostly OK, but noisy).
+
+## Verification snapshot (2026-02-08, pass 2)
+
+### Completed in this pass
+- Simplified watcher paths to JSONL + `.beads` directory only:
+  - `cmd/bd/activity_watcher.go`
+- Removed unused Dolt server stub:
+  - `cmd/bd/dolt_server_nocgo.go`
+- Simplified backend capability logic:
+  - removed `BackendDolt` constant, treat unknown/legacy backend strings as conservative single-process:
+  - `internal/configfile/configfile.go`
+  - `internal/configfile/configfile_test.go`
+- Removed stale Dolt wording in runtime comments:
+  - `cmd/bd/create.go`
+  - `internal/beads/beads.go`
+- Updated user-facing docs to SQLite+JSONL only:
+  - `docs/CONFIG.md`
+  - `docs/QUICKSTART.md`
+  - `docs/GIT_INTEGRATION.md`
+  - `docs/CLI_REFERENCE.md`
+  - `website/docs/getting-started/quickstart.md`
+
+### Validation results
+- `go test -short ./...` ✅
+- `go build ./cmd/bd` ✅
+
+### Remaining cleanup candidates
+- Historical/reference text only:
+  - release notes in `cmd/bd/info.go`
+  - legacy/compat tests mentioning invalid Dolt modes.
+- Doctor compatibility stubs still mention Dolt removal guidance:
+  - `cmd/bd/doctor/migration_validation_nocgo.go`
+  - lock cleanup checks for `dolt.bootstrap.lock` in doctor.
