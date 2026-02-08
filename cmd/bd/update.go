@@ -142,7 +142,7 @@ create, update, show, or close operation).`,
 				if !types.IssueType(issueType).IsValidWithCustom(customTypes) {
 					validTypes := "bug, feature, task, epic, chore"
 					if len(customTypes) > 0 {
-						validTypes += ", " + joinStrings(customTypes, ", ")
+						validTypes += ", " + strings.Join(customTypes, ", ")
 					}
 					FatalErrorRespectJSON("invalid issue type %q. Valid types: %s", issueType, validTypes)
 				}

@@ -55,7 +55,7 @@ func disableDaemonForFallback(reason string) {
 }
 
 // ensureStoreActive guarantees that a storage backend is initialized and tracked.
-// Uses the factory to respect metadata.json backend configuration (SQLite, Dolt embedded, or Dolt server).
+// Uses the factory to respect metadata.json backend configuration.
 func ensureStoreActive() error {
 	lockStore()
 	active := isStoreActive() && getStore() != nil
@@ -91,8 +91,7 @@ func ensureStoreActive() error {
 		}
 	}
 
-	// Use factory to create the appropriate backend (SQLite, Dolt embedded, or Dolt server)
-	// based on metadata.json configuration
+	// Use factory to create the configured backend from metadata.json.
 	store, err := factory.NewFromConfig(getRootContext(), beadsDir)
 	if err != nil {
 		// Check for fresh clone scenario (JSONL exists but no database)
@@ -114,7 +113,7 @@ func ensureStoreActive() error {
 	setStoreActive(true)
 	unlockStore()
 
-	if isAutoImportEnabled() && ShouldImportJSONL(rootCtx, store) {
+	if isAutoImportEnabled() {
 		autoImportIfNewer()
 	}
 

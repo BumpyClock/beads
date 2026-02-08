@@ -132,7 +132,6 @@ func finalizeExport(ctx context.Context, result *ExportResult) {
 	// Update database mtime to be >= JSONL mtime (fixes #278, #301, #321)
 	// This prevents validatePreExport from incorrectly blocking on next export.
 	//
-	// Dolt backend does not use a SQLite DB file, so this check is SQLite-only.
 	// Use store.Path() to get the actual database location, not the JSONL directory,
 	// since sync-branch exports write JSONL to a worktree but the DB stays in the main repo.
 	if result.JSONLPath != "" {
@@ -160,14 +159,7 @@ func releaseExportLock(result *ExportResult) {
 // exportToJSONL exports the database to JSONL format.
 // This is a convenience wrapper that exports and immediately finalizes.
 // For atomic sync operations, use exportToJSONLDeferred + finalizeExport.
-//
-// In dolt-native mode, this is a no-op - all sync happens via Dolt remotes.
 func exportToJSONL(ctx context.Context, jsonlPath string) error {
-	// Skip JSONL export in dolt-native mode (bd-zlih1)
-	if store != nil && !ShouldExportJSONL(ctx, store) {
-		return nil
-	}
-
 	result, err := exportToJSONLDeferred(ctx, jsonlPath)
 	if err != nil {
 		return err
@@ -186,14 +178,7 @@ func exportToJSONL(ctx context.Context, jsonlPath string) error {
 // The lock is stored in the ExportResult and released by finalizeExport() or
 // releaseExportLock(). This fixes the critical race condition where sync export
 // and daemon auto-flush could write simultaneously (SECURITY_AUDIT.md Issue #1).
-//
-// In dolt-native mode, returns nil result - all sync happens via Dolt remotes.
 func exportToJSONLDeferred(ctx context.Context, jsonlPath string) (*ExportResult, error) {
-	// Skip JSONL export in dolt-native mode (bd-zlih1)
-	if store != nil && !ShouldExportJSONL(ctx, store) {
-		return nil, nil
-	}
-
 	// If daemon is running, use RPC
 	// Note: daemon already handles its own metadata updates
 	if daemonClient != nil {
@@ -365,14 +350,7 @@ func exportToJSONLDeferred(ctx context.Context, jsonlPath string) (*ExportResult
 // Falls back to full export when incremental is not beneficial.
 //
 // Returns the export result for deferred finalization (same as exportToJSONLDeferred).
-//
-// In dolt-native mode, returns nil result - all sync happens via Dolt remotes.
 func exportToJSONLIncrementalDeferred(ctx context.Context, jsonlPath string) (*ExportResult, error) {
-	// Skip JSONL export in dolt-native mode (bd-zlih1)
-	if store != nil && !ShouldExportJSONL(ctx, store) {
-		return nil, nil
-	}
-
 	// If daemon is running, delegate to it (daemon has its own optimization)
 	if daemonClient != nil {
 		return exportToJSONLDeferred(ctx, jsonlPath)

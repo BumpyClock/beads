@@ -48,12 +48,6 @@ func syncBranchCommitAndPushWithOptions(ctx context.Context, store storage.Stora
 		return false, nil
 	}
 
-	// Skip JSONL sync branch operations in dolt-native mode (bd-ats9.3.1)
-	// Dolt handles sync through its own Push/Pull methods, not JSONL
-	if !ShouldExportJSONL(ctx, store) {
-		return true, nil // Signal "handled" to prevent fallback to regular git commit
-	}
-
 	log.Info("Using sync branch", "branch", syncBranch)
 
 	// Get main repo root (for worktrees, this is the main repo, not worktree)
@@ -290,12 +284,6 @@ func syncBranchPull(ctx context.Context, store storage.Storage, log *slog.Logger
 	// If no sync branch configured, caller should use regular pull logic
 	if syncBranch == "" {
 		return false, nil
-	}
-
-	// Skip JSONL sync branch operations in dolt-native mode (bd-ats9.3.1)
-	// Dolt handles sync through its own Push/Pull methods, not JSONL
-	if !ShouldExportJSONL(ctx, store) {
-		return true, nil // Signal "handled" to prevent fallback to regular git pull
 	}
 
 	// Get main repo root (for worktrees, this is the main repo, not worktree)

@@ -281,42 +281,6 @@ func TestBeadsRoleGitConfig(t *testing.T) {
 	})
 }
 
-// TestIsValidRemoteURL tests the remote URL validation function
-func TestIsValidRemoteURL(t *testing.T) {
-	tests := []struct {
-		name     string
-		url      string
-		expected bool
-	}{
-		// Valid URLs
-		{"dolthub scheme", "dolthub://org/repo", true},
-		{"gs scheme", "gs://bucket/path", true},
-		{"s3 scheme", "s3://bucket/path", true},
-		{"file scheme", "file:///path/to/repo", true},
-		{"https scheme", "https://github.com/user/repo", true},
-		{"http scheme", "http://github.com/user/repo", true},
-		{"ssh scheme", "ssh://git@github.com/user/repo", true},
-		{"git ssh format", "git@github.com:user/repo.git", true},
-		{"git ssh with underscore", "git@gitlab.example_host.com:user/repo.git", true},
-
-		// Invalid URLs
-		{"empty string", "", false},
-		{"no scheme", "github.com/user/repo", false},
-		{"invalid scheme", "ftp://server/path", false},
-		{"malformed git ssh", "git@:repo", false},
-		{"just path", "/path/to/repo", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := isValidRemoteURL(tt.url)
-			if got != tt.expected {
-				t.Errorf("isValidRemoteURL(%q) = %v, want %v", tt.url, got, tt.expected)
-			}
-		})
-	}
-}
-
 // TestValidateSyncConfig tests the sync config validation function
 func TestValidateSyncConfig(t *testing.T) {
 	// Create a temp directory for testing
@@ -384,29 +348,7 @@ conflict:
 		}
 	})
 
-	t.Run("invalid federation.sovereignty", func(t *testing.T) {
-		configContent := `prefix: test
-federation:
-  sovereignty: "invalid-value"
-`
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
-			t.Fatalf("Failed to write config.yaml: %v", err)
-		}
-
-		issues := validateSyncConfig(tmpDir)
-		found := false
-		for _, issue := range issues {
-			if strings.Contains(issue, "federation.sovereignty") {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Expected issue about federation.sovereignty, got: %v", issues)
-		}
-	})
-
-	t.Run("external mode without remote", func(t *testing.T) {
+	t.Run("legacy mode external is invalid", func(t *testing.T) {
 		configContent := `prefix: test
 sync:
   mode: "external"
@@ -418,47 +360,22 @@ sync:
 		issues := validateSyncConfig(tmpDir)
 		found := false
 		for _, issue := range issues {
-			if strings.Contains(issue, "federation.remote") && strings.Contains(issue, "required") {
+			if strings.Contains(issue, "sync.mode") {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Expected issue about federation.remote being required, got: %v", issues)
-		}
-	})
-
-	t.Run("invalid remote URL", func(t *testing.T) {
-		configContent := `prefix: test
-federation:
-  remote: "invalid-url"
-`
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
-			t.Fatalf("Failed to write config.yaml: %v", err)
-		}
-
-		issues := validateSyncConfig(tmpDir)
-		found := false
-		for _, issue := range issues {
-			if strings.Contains(issue, "federation.remote") && strings.Contains(issue, "not a valid remote URL") {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Expected issue about invalid remote URL, got: %v", issues)
+			t.Errorf("Expected issue about invalid legacy sync.mode, got: %v", issues)
 		}
 	})
 
 	t.Run("valid sync config", func(t *testing.T) {
 		configContent := `prefix: test
 sync:
-  mode: "git-branch"
+  mode: "git-portable"
 conflict:
-  strategy: "lww"
-federation:
-  sovereignty: "federated"
-  remote: "https://github.com/user/beads-data.git"
+  strategy: "newest"
 `
 		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(configContent), 0644); err != nil {
 			t.Fatalf("Failed to write config.yaml: %v", err)

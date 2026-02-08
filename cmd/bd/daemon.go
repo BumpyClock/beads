@@ -63,7 +63,6 @@ Run 'bd daemon --help' to see all subcommands.`,
 		foreground, _ := cmd.Flags().GetBool("foreground")
 		logLevel, _ := cmd.Flags().GetString("log-level")
 		logJSON, _ := cmd.Flags().GetBool("log-json")
-		federation, _ := cmd.Flags().GetBool("federation")
 
 		// If no operation flags provided, show help
 		if !start && !stop && !stopAll && !status && !health && !metrics {
@@ -237,9 +236,7 @@ Run 'bd daemon --help' to see all subcommands.`,
 			fmt.Printf("Logging to: %s\n", logFile)
 		}
 
-		federationPort, _ := cmd.Flags().GetInt("federation-port")
-		remotesapiPort, _ := cmd.Flags().GetInt("remotesapi-port")
-		startDaemon(interval, autoCommit, autoPush, autoPull, localMode, foreground, logFile, pidFile, logLevel, logJSON, federation, federationPort, remotesapiPort)
+		startDaemon(interval, autoCommit, autoPush, autoPull, localMode, foreground, logFile, pidFile, logLevel, logJSON)
 	},
 }
 
@@ -265,9 +262,6 @@ func init() {
 	daemonCmd.Flags().Bool("foreground", false, "Run in foreground (don't daemonize)")
 	daemonCmd.Flags().String("log-level", "info", "Log level (debug, info, warn, error)")
 	daemonCmd.Flags().Bool("log-json", false, "Output logs in JSON format (structured logging)")
-	daemonCmd.Flags().Bool("federation", false, "Enable federation mode (runs dolt sql-server with remotesapi)")
-	daemonCmd.Flags().Int("federation-port", 3307, "MySQL port for federation mode dolt sql-server")
-	daemonCmd.Flags().Int("remotesapi-port", 8080, "remotesapi port for peer-to-peer sync in federation mode")
 	daemonCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output JSON format")
 	rootCmd.AddCommand(daemonCmd)
 }
@@ -284,7 +278,7 @@ func computeDaemonParentPID() int {
 	}
 	return os.Getppid()
 }
-func runDaemonLoop(interval time.Duration, autoCommit, autoPush, autoPull, localMode bool, logPath, pidFile, logLevel string, logJSON, federation bool, federationPort, remotesapiPort int) {
+func runDaemonLoop(interval time.Duration, autoCommit, autoPush, autoPull, localMode bool, logPath, pidFile, logLevel string, logJSON bool) {
 	level := parseLogLevel(logLevel)
 	logF, log := setupDaemonLogger(logPath, logJSON, level)
 	defer func() { _ = logF.Close() }()

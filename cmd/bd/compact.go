@@ -47,7 +47,6 @@ Modes:
   - Analyze: Export candidates for agent review (no API key needed)
   - Apply: Accept agent-provided summary (no API key needed)
   - Auto: AI-powered compaction (requires ANTHROPIC_API_KEY, legacy)
-  - Dolt: Run Dolt garbage collection (for Dolt-backend repositories)
 
 Tiers:
   - Tier 1: Semantic compression (30 days closed, 70% reduction)
@@ -63,13 +62,6 @@ Tombstone Cleanup:
            removes any tombstone that no open issues depend on, regardless of age.
            Also cleans stale deps from closed issues to tombstones.
 
-Dolt Garbage Collection:
-  With auto-commit per mutation, Dolt commit history grows over time. Use
-  --dolt to run Dolt garbage collection and reclaim disk space.
-
-  --dolt: Run Dolt GC on .beads/dolt directory to free disk space.
-          This removes unreachable commits and compacts storage.
-
 Examples:
   # Age-based pruning
   bd compact --prune                       # Remove tombstones older than 30 days
@@ -79,10 +71,6 @@ Examples:
   # Dependency-aware purging (more aggressive)
   bd compact --purge-tombstones --dry-run  # Preview what would be purged
   bd compact --purge-tombstones            # Remove tombstones with no open deps
-
-  # Dolt garbage collection
-  bd compact --dolt                        # Run Dolt GC
-  bd compact --dolt --dry-run              # Preview without running GC
 
   # Agent-driven workflow (recommended)
   bd compact --analyze --json              # Get candidates with full content

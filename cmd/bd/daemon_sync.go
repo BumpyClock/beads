@@ -62,7 +62,7 @@ func shouldSkipDueToSameBranch(ctx context.Context, store storage.Storage, opera
 // exportToJSONLWithStore exports issues to JSONL using the provided store.
 // If multi-repo mode is configured, routes issues to their respective JSONL files.
 // Otherwise, exports to a single JSONL file.
-// Always writes local JSONL as a safety net (even in dolt-native mode).
+// Always writes local JSONL as a safety net.
 func exportToJSONLWithStore(ctx context.Context, store storage.Storage, jsonlPath string) error {
 	// Try multi-repo export first
 	sqliteStore, ok := store.(*sqlite.SQLiteStorage)
@@ -596,7 +596,6 @@ func performExport(ctx context.Context, store storage.Storage, autoCommit, autoP
 			// Update database mtime to be >= JSONL mtime (fixes #278, #301, #321)
 			// This prevents validatePreExport from incorrectly blocking on next export
 			// with "JSONL is newer than database" after daemon auto-export
-			// Dolt backend does not have a SQLite DB file; mtime touch is SQLite-only.
 			// Use store.Path() to get the actual database location, not the JSONL directory,
 			// since sync-branch exports write JSONL to a worktree but the DB stays in the main repo.
 			if sqliteStore, ok := store.(*sqlite.SQLiteStorage); ok {
@@ -691,12 +690,6 @@ func performAutoImport(ctx context.Context, store storage.Storage, skipGit bool,
 		mode := "auto-import"
 		if skipGit {
 			mode = "local auto-import"
-		}
-
-		// Skip JSONL import in dolt-native mode (JSONL is export-only backup)
-		if !ShouldImportJSONL(importCtx, store) {
-			log.Info("Skipping (dolt-native mode)", "mode", mode)
-			return
 		}
 
 		// Guard: Skip if sync-branch == current-branch (GH#1258)
@@ -927,7 +920,6 @@ func performSync(ctx context.Context, store storage.Storage, autoCommit, autoPus
 
 			// Update database mtime to be >= JSONL mtime
 			// This prevents validatePreExport from incorrectly blocking on next export
-			// Dolt backend does not have a SQLite DB file; mtime touch is SQLite-only.
 			// Use store.Path() to get the actual database location, not the JSONL directory,
 			// since sync-branch exports write JSONL to a worktree but the DB stays in the main repo.
 			if sqliteStore, ok := store.(*sqlite.SQLiteStorage); ok {
@@ -944,13 +936,6 @@ func performSync(ctx context.Context, store storage.Storage, autoCommit, autoPus
 			// Git-free mode: finalize immediately since there's no git to wait for
 			finalizeExportMetadata()
 			log.Info("Local sync complete", "mode", mode)
-			return
-		}
-
-		// In dolt-native mode, JSONL is export-only backup — skip git sync and import
-		if !ShouldImportJSONL(syncCtx, store) {
-			finalizeExportMetadata()
-			log.Info("Sync complete (dolt-native mode, export-only)", "mode", mode)
 			return
 		}
 
@@ -1057,7 +1042,6 @@ func performSync(ctx context.Context, store storage.Storage, autoCommit, autoPus
 
 		// Update database mtime after import (fixes #278, #301, #321)
 		// Sync branch import can update JSONL timestamp, so ensure DB >= JSONL
-		// Dolt backend does not have a SQLite DB file; mtime touch is SQLite-only.
 		// Use store.Path() to get the actual database location, not the JSONL directory,
 		// since sync-branch imports read JSONL from a worktree but the DB stays in the main repo.
 		if sqliteStore, ok := store.(*sqlite.SQLiteStorage); ok {

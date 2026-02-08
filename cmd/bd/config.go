@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -15,9 +14,6 @@ import (
 	"github.com/steveyegge/beads/internal/config"
 	"github.com/steveyegge/beads/internal/syncbranch"
 )
-
-// gitSSHRemotePattern matches standard git SSH remote URLs (user@host:path)
-var gitSSHRemotePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+@[a-zA-Z0-9][a-zA-Z0-9._-]*:.+$`)
 
 var configCmd = &cobra.Command{
 	Use:     "config",
@@ -331,11 +327,8 @@ var configValidateCmd = &cobra.Command{
 	Long: `Validate sync-related configuration settings.
 
 Checks:
-  - sync.mode is a valid value (local, git-branch, external)
-  - conflict.strategy is valid (lww, manual, ours, theirs)
-  - federation.sovereignty is valid (if set)
-  - federation.remote is set when sync.mode requires it
-  - Remote URL format is valid (dolthub://, gs://, s3://, file://)
+  - sync.mode is a valid value (git-portable, realtime)
+  - conflict.strategy is valid (newest, manual, ours, theirs)
   - sync.branch is a valid git branch name
   - routing.mode is valid (auto, maintainer, contributor, explicit)
 
@@ -415,79 +408,30 @@ func validateSyncConfig(repoPath string) []string {
 	// Get config from yaml
 	syncMode := v.GetString("sync.mode")
 	conflictStrategy := v.GetString("conflict.strategy")
-	federationSov := v.GetString("federation.sovereignty")
-	federationRemote := v.GetString("federation.remote")
 
 	// Validate sync.mode
 	validSyncModes := map[string]bool{
-		"":           true, // not set is valid (uses default)
-		"local":      true,
-		"git-branch": true,
-		"external":   true,
+		"":             true, // not set is valid (uses default)
+		"git-portable": true,
+		"realtime":     true,
 	}
 	if syncMode != "" && !validSyncModes[syncMode] {
-		issues = append(issues, fmt.Sprintf("sync.mode: %q is invalid (valid values: local, git-branch, external)", syncMode))
+		issues = append(issues, fmt.Sprintf("sync.mode: %q is invalid (valid values: git-portable, realtime)", syncMode))
 	}
 
 	// Validate conflict.strategy
 	validConflictStrategies := map[string]bool{
-		"":       true, // not set is valid (uses default lww)
-		"lww":    true, // last-write-wins (default)
+		"":       true, // not set is valid (uses default newest)
+		"newest": true, // last-write-wins (default)
 		"manual": true, // require manual resolution
 		"ours":   true, // prefer local changes
 		"theirs": true, // prefer remote changes
 	}
 	if conflictStrategy != "" && !validConflictStrategies[conflictStrategy] {
-		issues = append(issues, fmt.Sprintf("conflict.strategy: %q is invalid (valid values: lww, manual, ours, theirs)", conflictStrategy))
-	}
-
-	// Validate federation.sovereignty
-	validSovereignties := map[string]bool{
-		"":          true, // not set is valid
-		"none":      true, // no sovereignty restrictions
-		"isolated":  true, // fully isolated, no federation
-		"federated": true, // participates in federation
-	}
-	if federationSov != "" && !validSovereignties[federationSov] {
-		issues = append(issues, fmt.Sprintf("federation.sovereignty: %q is invalid (valid values: none, isolated, federated)", federationSov))
-	}
-
-	// Validate federation.remote when required
-	if syncMode == "external" && federationRemote == "" {
-		issues = append(issues, "federation.remote: required when sync.mode is 'external'")
-	}
-
-	// Validate remote URL format
-	if federationRemote != "" {
-		if !isValidRemoteURL(federationRemote) {
-			issues = append(issues, fmt.Sprintf("federation.remote: %q is not a valid remote URL (expected dolthub://, gs://, s3://, file://, or standard git URL)", federationRemote))
-		}
+		issues = append(issues, fmt.Sprintf("conflict.strategy: %q is invalid (valid values: newest, manual, ours, theirs)", conflictStrategy))
 	}
 
 	return issues
-}
-
-// isValidRemoteURL validates remote URL formats for sync configuration
-func isValidRemoteURL(url string) bool {
-	// Valid URL schemes for beads remotes
-	validSchemes := []string{
-		"dolthub://",
-		"gs://",
-		"s3://",
-		"file://",
-		"https://",
-		"http://",
-		"ssh://",
-	}
-
-	for _, scheme := range validSchemes {
-		if strings.HasPrefix(url, scheme) {
-			return true
-		}
-	}
-
-	// Also allow standard git remote patterns (user@host:path)
-	return gitSSHRemotePattern.MatchString(url)
 }
 
 // findBeadsRepoRoot walks up from the given path to find the repo root (containing .beads)

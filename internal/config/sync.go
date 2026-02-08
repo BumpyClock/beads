@@ -176,7 +176,7 @@ func IsValidSovereignty(sovereignty string) bool {
 // Logs a warning if an invalid value is configured (unless ConfigWarnings is false).
 //
 // Config key: sync.mode
-// Valid values: git-portable, realtime, dolt-native, belt-and-suspenders
+// Valid values: git-portable, realtime
 func GetSyncMode() SyncMode {
 	value := GetString("sync.mode")
 	if value == "" {
