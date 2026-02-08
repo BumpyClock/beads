@@ -388,10 +388,9 @@ func TestEnsureDatabaseFresh_FreshDB(t *testing.T) {
 	}
 }
 
-// TestEnsureDatabaseFresh_DoltNativeSkipsCheck verifies that in dolt-native mode,
-// ensureDatabaseFresh skips the JSONL staleness check entirely. Dolt is the source
-// of truth in this mode, so JSONL divergence is expected and should not block reads.
-func TestEnsureDatabaseFresh_DoltNativeSkipsCheck(t *testing.T) {
+// TestEnsureDatabaseFresh_InvalidSyncModeStillChecks verifies unknown sync.mode values
+// don't bypass the standard freshness behavior.
+func TestEnsureDatabaseFresh_InvalidSyncModeStillChecks(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
 	beadsDir := filepath.Join(tmpDir, ".beads")
@@ -430,9 +429,9 @@ func TestEnsureDatabaseFresh_DoltNativeSkipsCheck(t *testing.T) {
 	rootCtx = ctx
 	storeActive = true
 
-	// Set dolt-native mode — staleness check should be skipped entirely
+	// Set invalid mode; freshness behavior should remain safe/default.
 	oldSyncMode := config.GetString("sync.mode")
-	config.Set("sync.mode", "dolt-native")
+	config.Set("sync.mode", "legacy-hybrid")
 
 	defer func() {
 		config.Set("sync.mode", oldSyncMode)
@@ -445,9 +444,9 @@ func TestEnsureDatabaseFresh_DoltNativeSkipsCheck(t *testing.T) {
 		storeActive = oldStoreActive
 	}()
 
-	// Call ensureDatabaseFresh — should return nil without checking JSONL
+	// Call ensureDatabaseFresh on fresh DB.
 	err = ensureDatabaseFresh(ctx)
 	if err != nil {
-		t.Errorf("ensureDatabaseFresh() should skip check in dolt-native mode: %v", err)
+		t.Errorf("ensureDatabaseFresh() should succeed for fresh DB with invalid sync.mode: %v", err)
 	}
 }

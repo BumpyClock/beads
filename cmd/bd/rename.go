@@ -23,7 +23,7 @@ This updates:
 - Labels, comments, and events
 
 Examples:
-  bd rename bd-w382l bd-dolt     # Rename to memorable ID
+  bd rename bd-w382l bd-auth     # Rename to memorable ID
   bd rename gt-abc123 gt-auth    # Use descriptive ID
 
 Note: The new ID must use a valid prefix for this database.`,
@@ -47,7 +47,7 @@ func runRename(cmd *cobra.Command, args []string) error {
 	// Basic ID format validation
 	idPattern := regexp.MustCompile(`^[a-z]+-[a-zA-Z0-9._-]+$`)
 	if !idPattern.MatchString(newID) {
-		return fmt.Errorf("invalid new ID format %q: must be prefix-suffix (e.g., bd-dolt)", newID)
+		return fmt.Errorf("invalid new ID format %q: must be prefix-suffix (e.g., bd-auth)", newID)
 	}
 
 	ctx := context.Background()

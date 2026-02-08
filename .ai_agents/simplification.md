@@ -351,3 +351,30 @@ Manual smoke:
 - Doctor compatibility stubs still mention Dolt removal guidance:
   - `cmd/bd/doctor/migration_validation_nocgo.go`
   - lock cleanup checks for `dolt.bootstrap.lock` in doctor.
+
+## Verification snapshot (2026-02-08, pass 3)
+
+### Completed in this pass
+- Removed remaining Dolt-branded wording/tokens from code/docs/tests under:
+  - `cmd/`
+  - `internal/`
+  - `docs/`
+  - `website/`
+- Updated compatibility test and comments to neutral "legacy"/generic invalid-mode wording.
+- Reworked `init` BEADS_DIR backend test to sqlite path verification:
+  - `cmd/bd/init_test.go`
+- Simplified doctor legacy migration stubs and lock checks:
+  - switched bootstrap lock checks to `bootstrap.lock`
+  - removed explicit Dolt naming from migration-validation structures/messages
+  - files: `cmd/bd/doctor/locks.go`, `cmd/bd/doctor/fix/locks.go`, `cmd/bd/doctor/migration_validation_nocgo.go` (+ tests)
+- Cleaned historical "what's new" strings to remove Dolt naming while preserving chronology:
+  - `cmd/bd/info.go`
+
+### Validation results
+- `go test -short ./cmd/bd/...` ✅
+- `go test -short ./internal/...` ✅
+- `go build ./cmd/bd` ✅
+
+### Remaining cleanup candidates
+- Optional only:
+  - rename legacy helper symbols/files (`migration_validation_nocgo`) for naming consistency.

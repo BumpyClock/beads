@@ -29,7 +29,7 @@ func TestIsVersioned(t *testing.T) {
 // TestVersionedStorageInterface ensures the interface is correctly defined.
 func TestVersionedStorageInterface(t *testing.T) {
 	// This test verifies that the interface types exist and have the expected methods.
-	// Actual implementation testing would be done in the dolt package.
+	// Actual implementation testing would be done in backend-specific packages.
 
 	// HistoryEntry should have the expected fields
 	entry := storage.HistoryEntry{

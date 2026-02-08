@@ -35,14 +35,17 @@ func CheckStaleLockFiles(path string) DoctorCheck {
 	var staleFiles []string
 	var details []string
 
-	// Check bootstrap lock (dolt.bootstrap.lock)
-	bootstrapLockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
-	if info, err := os.Stat(bootstrapLockPath); err == nil {
-		age := time.Since(info.ModTime())
-		if age > staleLockThresholds["bootstrap.lock"] {
-			staleFiles = append(staleFiles, "dolt.bootstrap.lock")
-			details = append(details, fmt.Sprintf("dolt.bootstrap.lock: age %s (threshold: %s)",
-				age.Round(time.Second), staleLockThresholds["bootstrap.lock"]))
+	// Check bootstrap lock.
+	bootstrapLockFiles := []string{"bootstrap.lock"}
+	for _, lockName := range bootstrapLockFiles {
+		bootstrapLockPath := filepath.Join(beadsDir, lockName)
+		if info, err := os.Stat(bootstrapLockPath); err == nil {
+			age := time.Since(info.ModTime())
+			if age > staleLockThresholds["bootstrap.lock"] {
+				staleFiles = append(staleFiles, lockName)
+				details = append(details, fmt.Sprintf("%s: age %s (threshold: %s)",
+					lockName, age.Round(time.Second), staleLockThresholds["bootstrap.lock"]))
+			}
 		}
 	}
 

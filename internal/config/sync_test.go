@@ -32,14 +32,14 @@ func TestGetSyncMode(t *testing.T) {
 			expectsWarning: false,
 		},
 		{
-			name:           "dolt-native is invalid",
-			configValue:    "dolt-native",
+			name:           "external is invalid",
+			configValue:    "external",
 			expectedMode:   SyncModeGitPortable,
 			expectsWarning: true,
 		},
 		{
-			name:           "belt-and-suspenders is invalid",
-			configValue:    "belt-and-suspenders",
+			name:           "legacy-hybrid is invalid",
+			configValue:    "legacy-hybrid",
 			expectedMode:   SyncModeGitPortable,
 			expectsWarning: true,
 		},
@@ -357,8 +357,8 @@ func TestIsValidSyncMode(t *testing.T) {
 	}{
 		{"git-portable", true},
 		{"realtime", true},
-		{"dolt-native", false},
-		{"belt-and-suspenders", false},
+		{"external", false},
+		{"legacy-hybrid", false},
 		{"Git-Portable", true}, // case insensitive
 		{"  realtime  ", true}, // whitespace trimmed
 		{"invalid", false},

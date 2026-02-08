@@ -1265,8 +1265,8 @@ func TestIsSyncModeValid(t *testing.T) {
 	}{
 		{string(SyncModeGitPortable), true},
 		{string(SyncModeRealtime), true},
-		{"dolt-native", false},
-		{"belt-and-suspenders", false},
+		{"external", false},
+		{"legacy-hybrid", false},
 		{"invalid-mode", false},
 		{"", false},
 	}
@@ -1340,7 +1340,7 @@ conflict:
   strategy: ours
 
 federation:
-  remote: dolthub://myorg/beads
+  remote: https://example.com/myorg/beads.git
   sovereignty: T2
 `
 	beadsDir := filepath.Join(tmpDir, ".beads")
@@ -1381,8 +1381,8 @@ federation:
 
 	// Test federation config
 	fedCfg := GetFederationConfig()
-	if fedCfg.Remote != "dolthub://myorg/beads" {
-		t.Errorf("GetFederationConfig().Remote = %q, want \"dolthub://myorg/beads\"", fedCfg.Remote)
+	if fedCfg.Remote != "https://example.com/myorg/beads.git" {
+		t.Errorf("GetFederationConfig().Remote = %q, want \"https://example.com/myorg/beads.git\"", fedCfg.Remote)
 	}
 	if fedCfg.Sovereignty != SovereigntyT2 {
 		t.Errorf("GetFederationConfig().Sovereignty = %q, want %q", fedCfg.Sovereignty, SovereigntyT2)

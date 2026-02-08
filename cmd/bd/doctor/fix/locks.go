@@ -24,15 +24,17 @@ func StaleLockFiles(path string) error {
 	var removed []string
 	var errors []string
 
-	// Remove stale bootstrap lock
-	bootstrapLockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
-	if info, err := os.Stat(bootstrapLockPath); err == nil {
-		age := time.Since(info.ModTime())
-		if age > 5*time.Minute {
-			if err := os.Remove(bootstrapLockPath); err != nil {
-				errors = append(errors, fmt.Sprintf("dolt.bootstrap.lock: %v", err))
-			} else {
-				removed = append(removed, "dolt.bootstrap.lock")
+	// Remove stale bootstrap lock.
+	for _, lockName := range []string{"bootstrap.lock"} {
+		bootstrapLockPath := filepath.Join(beadsDir, lockName)
+		if info, err := os.Stat(bootstrapLockPath); err == nil {
+			age := time.Since(info.ModTime())
+			if age > 5*time.Minute {
+				if err := os.Remove(bootstrapLockPath); err != nil {
+					errors = append(errors, fmt.Sprintf("%s: %v", lockName, err))
+				} else {
+					removed = append(removed, lockName)
+				}
 			}
 		}
 	}

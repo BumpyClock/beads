@@ -14,7 +14,7 @@ import (
 )
 
 func TestExportToJSONLWithStore(t *testing.T) {
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)
@@ -84,7 +84,7 @@ func TestExportToJSONLWithStore(t *testing.T) {
 }
 
 func TestExportToJSONLWithStore_EmptyDatabase(t *testing.T) {
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)
@@ -186,7 +186,7 @@ func TestImportToJSONLWithStore(t *testing.T) {
 }
 
 func TestExportImportRoundTrip(t *testing.T) {
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)
@@ -313,7 +313,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 
 // TestExportUpdatesMetadata verifies that export updates last_import_hash metadata (bd-ymj fix)
 func TestExportUpdatesMetadata(t *testing.T) {
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)
@@ -392,7 +392,7 @@ func TestExportUpdatesMetadata(t *testing.T) {
 }
 
 func TestUpdateExportMetadataMultiRepo(t *testing.T) {
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)
@@ -506,7 +506,7 @@ func TestUpdateExportMetadataMultiRepo(t *testing.T) {
 // TestExportWithMultiRepoConfigUpdatesAllMetadata verifies that export with multi-repo
 // config correctly updates metadata for ALL JSONL files with proper keySuffix (bd-ar2.8)
 func TestExportWithMultiRepoConfigUpdatesAllMetadata(t *testing.T) {
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)
@@ -748,7 +748,7 @@ func TestExportToJSONLWithStore_IncludesTombstones(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, ".beads", "beads.db")
 	jsonlPath := filepath.Join(tmpDir, ".beads", "issues.jsonl")
 
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)

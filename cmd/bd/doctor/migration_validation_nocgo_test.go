@@ -13,8 +13,8 @@ func TestCheckMigrationReadiness_NoCGO(t *testing.T) {
 		t.Errorf("status = %q, want %q", check.Status, StatusOK)
 	}
 
-	if check.Message != "N/A (requires CGO for Dolt)" {
-		t.Errorf("message = %q, want %q", check.Message, "N/A (requires CGO for Dolt)")
+	if check.Message != "N/A (legacy backend removed)" {
+		t.Errorf("message = %q, want %q", check.Message, "N/A (legacy backend removed)")
 	}
 
 	if result.Ready {
@@ -22,7 +22,7 @@ func TestCheckMigrationReadiness_NoCGO(t *testing.T) {
 	}
 
 	if len(result.Errors) == 0 {
-		t.Error("expected error message about CGO")
+		t.Error("expected error message about removed legacy migration support")
 	}
 }
 
@@ -38,15 +38,15 @@ func TestCheckMigrationCompletion_NoCGO(t *testing.T) {
 	}
 }
 
-func TestCheckDoltLocks_NoCGO(t *testing.T) {
-	check := CheckDoltLocks("/tmp/nonexistent")
+func TestCheckLegacyLocks_NoCGO(t *testing.T) {
+	check := CheckLegacyLocks("/tmp/nonexistent")
 
 	if check.Status != StatusOK {
 		t.Errorf("status = %q, want %q", check.Status, StatusOK)
 	}
 
-	if check.Message != "N/A (requires CGO for Dolt)" {
-		t.Errorf("message = %q, want %q", check.Message, "N/A (requires CGO for Dolt)")
+	if check.Message != "N/A (legacy backend removed)" {
+		t.Errorf("message = %q, want %q", check.Message, "N/A (legacy backend removed)")
 	}
 }
 

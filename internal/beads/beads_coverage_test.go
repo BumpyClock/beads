@@ -121,13 +121,13 @@ func TestFindDatabaseInBeadsDir_WithMetadataJSON(t *testing.T) {
 	}
 }
 
-// TestFindDatabaseInBeadsDir_DoltBackend tests that dolt backend in metadata.json
-// falls through to the canonical beads.db fallback (Dolt backend has been removed).
-func TestFindDatabaseInBeadsDir_DoltBackend(t *testing.T) {
+// TestFindDatabaseInBeadsDir_LegacyBackend tests that unknown legacy backend values
+// fall through to the canonical beads.db fallback.
+func TestFindDatabaseInBeadsDir_LegacyBackend(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Create metadata.json with dolt backend (legacy config)
-	metadataContent := `{"backend": "dolt"}`
+	// Create metadata.json with legacy backend value
+	metadataContent := `{"backend": "legacy"}`
 	if err := os.WriteFile(filepath.Join(tmpDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestFindDatabaseInBeadsDir_DoltBackend(t *testing.T) {
 	// No beads.db exists, so should return empty string
 	result := findDatabaseInBeadsDir(tmpDir, false)
 	if result != "" {
-		t.Errorf("findDatabaseInBeadsDir() with dolt backend = %q, want empty (no db file)", result)
+		t.Errorf("findDatabaseInBeadsDir() with legacy backend = %q, want empty (no db file)", result)
 	}
 }
 
@@ -161,15 +161,15 @@ func TestGetConfiguredBackend(t *testing.T) {
 		}
 	})
 
-	t.Run("dolt config", func(t *testing.T) {
+	t.Run("legacy config", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		metadataContent := `{"backend": "dolt"}`
+		metadataContent := `{"backend": "legacy"}`
 		if err := os.WriteFile(filepath.Join(tmpDir, "metadata.json"), []byte(metadataContent), 0644); err != nil {
 			t.Fatal(err)
 		}
 		result := GetConfiguredBackend(tmpDir)
-		if result != "dolt" {
-			t.Errorf("GetConfiguredBackend() = %q, want %q", result, "dolt")
+		if result != "legacy" {
+			t.Errorf("GetConfiguredBackend() = %q, want %q", result, "legacy")
 		}
 	})
 }

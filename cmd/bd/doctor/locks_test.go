@@ -37,7 +37,7 @@ func TestCheckStaleLockFiles(t *testing.T) {
 		}
 
 		// Create a fresh bootstrap lock (should not be flagged)
-		lockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		lockPath := filepath.Join(beadsDir, "bootstrap.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -56,7 +56,7 @@ func TestCheckStaleLockFiles(t *testing.T) {
 		}
 
 		// Create an old bootstrap lock
-		lockPath := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		lockPath := filepath.Join(beadsDir, "bootstrap.lock")
 		if err := os.WriteFile(lockPath, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -130,7 +130,7 @@ func TestCheckStaleLockFiles(t *testing.T) {
 		oldTime := time.Now().Add(-2 * time.Hour)
 
 		// Create stale bootstrap lock
-		bootstrapLock := filepath.Join(beadsDir, "dolt.bootstrap.lock")
+		bootstrapLock := filepath.Join(beadsDir, "bootstrap.lock")
 		if err := os.WriteFile(bootstrapLock, []byte("lock"), 0600); err != nil {
 			t.Fatal(err)
 		}

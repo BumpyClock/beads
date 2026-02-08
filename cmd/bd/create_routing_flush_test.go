@@ -15,7 +15,7 @@ import (
 // TestFlushRoutedRepo_DirectExport tests that routed issues are exported to JSONL
 // in the target repo when no daemon is running (direct export fallback).
 func TestFlushRoutedRepo_DirectExport(t *testing.T) {
-	// Isolate global config (other tests may set sync.mode=dolt-native, which disables JSONL export).
+	// Isolate global config (other tests may set sync.mode, affecting JSONL export behavior).
 	config.ResetForTesting()
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("config.Initialize() returned error: %v", err)

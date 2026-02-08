@@ -156,7 +156,7 @@ func Initialize() error {
 	v.SetDefault("conflict.strategy", ConflictStrategyNewest) // newest | ours | theirs | manual
 
 	// Federation configuration
-	v.SetDefault("federation.remote", "")      // e.g., dolthub://org/beads, gs://bucket/beads, s3://bucket/beads
+	v.SetDefault("federation.remote", "")      // e.g., https://example.com/org/beads.git
 	v.SetDefault("federation.sovereignty", "") // T1 | T2 | T3 | T4 (empty = no restriction)
 
 	// Push configuration defaults
@@ -684,7 +684,7 @@ func GetFieldStrategy(field string) FieldStrategy {
 
 // FederationConfig holds the federation remote configuration.
 type FederationConfig struct {
-	Remote      string      // dolthub://org/beads, gs://bucket/beads, s3://bucket/beads
+	Remote      string      // e.g., https://example.com/org/beads.git
 	Sovereignty Sovereignty // T1, T2, T3, T4
 }
 

@@ -11,7 +11,7 @@ import (
 //
 // Many tests expect config defaults (e.g. sync.mode=git-portable). If the test
 // process runs from within this repo, Initialize() will walk up from CWD and
-// load the repo's tracked `.beads/config.yaml`, which sets sync.mode=dolt-native.
+// load the repo's tracked `.beads/config.yaml`, overriding test defaults.
 func TestMain(m *testing.M) {
 	tmp, err := os.MkdirTemp("", "beads-config-tests-*")
 	if err != nil {

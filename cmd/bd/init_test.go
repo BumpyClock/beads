@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -2099,18 +2098,12 @@ func TestInitBEADS_DIR(t *testing.T) {
 	})
 }
 
-// TestInit_WithBEADS_DIR_DoltBackend verifies that bd init with Dolt backend
+// TestInit_WithBEADS_DIR_SQLiteBackend verifies `bd init --backend sqlite`
 // creates the database at BEADS_DIR when the environment variable is set.
-// This tests requirements FR-002 for Dolt backend.
-func TestInit_WithBEADS_DIR_DoltBackend(t *testing.T) {
+func TestInit_WithBEADS_DIR_SQLiteBackend(t *testing.T) {
 	// Skip on Windows
 	if runtime.GOOS == "windows" {
-		t.Skip("Skipping BEADS_DIR Dolt test on Windows")
-	}
-
-	// Check if dolt is available
-	if _, err := exec.LookPath("dolt"); err != nil {
-		t.Skip("Dolt not installed, skipping Dolt backend test")
+		t.Skip("Skipping BEADS_DIR sqlite test on Windows")
 	}
 
 	// Reset global state
@@ -2150,24 +2143,22 @@ func TestInit_WithBEADS_DIR_DoltBackend(t *testing.T) {
 	os.MkdirAll(cwdPath, 0755)
 	t.Chdir(cwdPath)
 
-	// Run bd init with Dolt backend
-	rootCmd.SetArgs([]string{"init", "--prefix", "dolt-test", "--backend", "dolt", "--quiet"})
+	// Run bd init with sqlite backend.
+	rootCmd.SetArgs([]string{"init", "--prefix", "sqlite-test", "--backend", "sqlite", "--quiet"})
 	if err := rootCmd.Execute(); err != nil {
-		t.Fatalf("Init with BEADS_DIR and Dolt backend failed: %v", err)
+		t.Fatalf("Init with BEADS_DIR and sqlite backend failed: %v", err)
 	}
 
-	// Verify Dolt database was created at BEADS_DIR
-	expectedDoltPath := filepath.Join(beadsDirPath, "dolt")
-	if info, err := os.Stat(expectedDoltPath); os.IsNotExist(err) {
-		t.Errorf("Dolt database was not created at BEADS_DIR path: %s", expectedDoltPath)
-	} else if !info.IsDir() {
-		t.Errorf("Expected Dolt path to be a directory: %s", expectedDoltPath)
+	// Verify database was created at BEADS_DIR.
+	expectedDBPath := filepath.Join(beadsDirPath, beads.CanonicalDatabaseName)
+	if _, err := os.Stat(expectedDBPath); os.IsNotExist(err) {
+		t.Errorf("SQLite database was not created at BEADS_DIR path: %s", expectedDBPath)
 	}
 
-	// Verify database was NOT created at CWD
-	cwdDoltPath := filepath.Join(cwdPath, ".beads", "dolt")
-	if _, err := os.Stat(cwdDoltPath); err == nil {
-		t.Errorf("Dolt database should NOT have been created at CWD: %s", cwdDoltPath)
+	// Verify database was not created at CWD.
+	cwdDBPath := filepath.Join(cwdPath, ".beads", beads.CanonicalDatabaseName)
+	if _, err := os.Stat(cwdDBPath); err == nil {
+		t.Errorf("SQLite database should not have been created at CWD: %s", cwdDBPath)
 	}
 }
 

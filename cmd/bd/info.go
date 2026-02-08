@@ -292,9 +292,9 @@ var versionChanges = []VersionChange{
 		Version: "0.49.6",
 		Date:    "2026-02-08",
 		Changes: []string{
-			"CHANGE: Dolt backend fully removed from fork (archived at github.com/BumpyClock/beads-dolt)",
+			"CHANGE: Legacy backend fully removed from fork",
 			"CHANGE: CGO no longer required for builds - pure Go compilation",
-			"CHANGE: Sync modes reduced to git-portable and realtime (dolt-native, belt-and-suspenders removed)",
+			"CHANGE: Sync modes reduced to git-portable and realtime (legacy hybrid modes removed)",
 		},
 	},
 	{
@@ -345,8 +345,8 @@ var versionChanges = []VersionChange{
 		Version: "0.49.3",
 		Date:    "2026-01-31",
 		Changes: []string{
-			"FIX: Dolt split-brain eliminated - DatabasePath() always resolves to .beads/dolt/ for dolt backend; JSONL auto-import blocked in dolt-native mode",
-			"CHANGE: Embedded Dolt is now the default - server mode is opt-in via dolt_mode: server",
+			"FIX: Legacy backend split-brain eliminated - consistent DatabasePath resolution and JSONL import behavior",
+			"CHANGE: Embedded legacy backend defaulted to server mode (later removed)",
 			"FIX: Dolt mergeJoinIter panic on type-filtered queries eliminated",
 			"FIX: CGO/ICU build - Makefile and test.sh auto-detect Homebrew icu4c paths on macOS",
 		},
@@ -367,7 +367,7 @@ var versionChanges = []VersionChange{
 			"CHANGE: Storage layer refactored for backend-agnostic access",
 			"FIX: Worktree support - GIT_DIR/GIT_WORK_TREE in sync operations",
 			"FIX: Graceful Dolt server-to-embedded fallback",
-			"FIX: Multiple sync fixes for dolt-native mode and sync-branch",
+			"FIX: Multiple sync fixes for legacy native mode and sync-branch",
 			"FIX: Formula handlebars, ephemeral sync exclusion, daemon idempotency",
 		},
 	},
@@ -397,7 +397,7 @@ var versionChanges = []VersionChange{
 		Date:    "2026-01-21",
 		Changes: []string{
 			"NEW: Dolt federation - Peer-to-peer issue sync with bd federation sync command",
-			"NEW: SQLite to Dolt migration - bd migrate dolt converts existing repos",
+			"NEW: SQLite to legacy-backend migration workflow",
 			"NEW: bd children <id> - Display child issues for a parent",
 			"NEW: bd rename <old> <new> - Rename issue IDs",
 			"NEW: bd view - Alias for bd show command",
@@ -422,7 +422,7 @@ var versionChanges = []VersionChange{
 			"NEW: bd types command - List valid issue types with descriptions",
 			"NEW: bd close -m flag - Alias for --reason (git commit convention)",
 			"NEW: RepoContext API - Centralized git operations context",
-			"WIP: Dolt backend improvements - Bootstrap from JSONL, hook infrastructure, bd compact --dolt",
+			"WIP: Legacy backend improvements - Bootstrap from JSONL and hook infrastructure",
 			"FIX: Doctor sync branch check - Removed destructive --fix behavior (GH#1062)",
 			"FIX: Duplicate merge target - Use combined weight for better selection (GH#1022)",
 			"FIX: Worktree exclude paths - Correct --git-common-dir usage (GH#1053)",
@@ -435,7 +435,7 @@ var versionChanges = []VersionChange{
 		Version: "0.47.2",
 		Date:    "2026-01-14",
 		Changes: []string{
-			"NEW: Dolt backend (experimental) - bd init --backend=dolt for version-controlled storage",
+			"NEW: Legacy backend (experimental) for version-controlled storage",
 			"NEW: bd show --children flag - Display child issues inline with parent",
 			"NEW: Comprehensive NixOS support - Improved flake and home-manager integration",
 			"FIX: Redirect + sync-branch incompatibility - bd sync works in redirected repos (bd-wayc3)",

@@ -197,7 +197,7 @@ type FederatedStorage interface {
 // RemoteInfo describes a configured remote.
 type RemoteInfo struct {
 	Name string // Remote name (e.g., "town-beta")
-	URL  string // Remote URL (e.g., "dolthub://org/repo")
+	URL  string // Remote URL (e.g., "https://example.com/org/repo.git")
 }
 
 // SyncStatus describes the synchronization state with a peer.
